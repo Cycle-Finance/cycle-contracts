@@ -1,2 +1,4 @@
 # cycle-contracts
-solidity implimentation of cycle finance protocal
+
+solidity implementation of cycle finance protocol
+

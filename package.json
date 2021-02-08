@@ -1,0 +1,26 @@
+{
+  "name": "bdb-contracts",
+  "version": "0.0.1",
+  "description": "blockchain development bank implemention of solidity",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^3.3.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ccbankpro/bdb-contracts.git"
+  },
+  "author": "Blockchain Development Bank",
+  "license": "LGPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/ccbankpro/bdb-contracts/issues"
+  },
+  "homepage": "https://github.com/ccbankpro/bdb-contracts#readme"
+}

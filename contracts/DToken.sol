@@ -2,9 +2,8 @@
 pragma solidity ^0.7.0;
 pragma abicoder v2;
 
-
+import "./ComptrollerInterface.sol";
 
 contract DToken {
-
-    address public comptroller;
+    ComptrollerInterface public comptroller;
 }

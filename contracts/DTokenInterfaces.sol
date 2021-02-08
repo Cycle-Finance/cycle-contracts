@@ -3,8 +3,10 @@ pragma solidity ^0.7.0;
 pragma abicoder v2;
 
 import "./ComptrollerInterface.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract DTokenStorage {
+contract DTokenStorage is ERC20, Ownable {
     /**
      * @dev Guard variable for re-entrancy checks
      */
@@ -24,4 +26,6 @@ contract DTokenStorage {
         _;
         _notEntered = true;
     }
+
+    constructor(string memory name, string memory symbol)ERC20(name, symbol) Ownable(){}
 }

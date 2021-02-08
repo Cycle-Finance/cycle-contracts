@@ -10,7 +10,7 @@ interface IOracle {
     function getPrice(address asset) external view returns (uint);
 }
 
-interface IERC20 {
+interface Decimals {
     function decimals() external view returns (uint);
 }
 
@@ -35,8 +35,8 @@ contract Oracle is IOracle, Ownable {
         chainlink[token] = AggregatorV3Interface(oracle);
     }
 
-    // normalize price to Double
-    function getPrice(address asset)public view override returns (uint){
+    // normalize price to Exponential
+    function getPrice(address asset) public view override returns (uint){
         AggregatorV3Interface ethOracle = chainlink[address(0)];
         (,int256 ethAnswer, , ,) = ethOracle.latestRoundData();
         uint expScale = 10 ** 18;
@@ -50,7 +50,7 @@ contract Oracle is IOracle, Ownable {
         uint assetExpPrice = uint(assetAnswer).mul(expScale).div(10 ** assetOracle.decimals());
         // the price is double scale
         uint price = assetExpPrice.mul(ethExpPrice);
-        uint assetDecimals = IERC20(asset).decimals();
+        uint assetDecimals = Decimals(asset).decimals();
         return price.div(10 ** assetDecimals);
     }
 }

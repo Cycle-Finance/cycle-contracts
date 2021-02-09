@@ -2,8 +2,10 @@
 pragma solidity ^0.7.0;
 pragma abicoder v2;
 
-import "./ComptrollerInterface.sol";
+import "./DTokenInterface.sol";
 
-contract DToken {
-    ComptrollerInterface public comptroller;
+contract DToken is DTokenStorage {
+    function mintInternal(uint mintAmount) internal nonReentrant returns(string){
+        return "";
+    }
 }

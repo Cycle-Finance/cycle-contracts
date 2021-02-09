@@ -29,3 +29,8 @@ contract DTokenStorage is ERC20, Ownable {
 
     constructor(string memory name, string memory symbol)ERC20(name, symbol) Ownable(){}
 }
+
+interface DTokenInterface {
+    // return the value of underlying asset, represented by USD
+    function deposit() external view returns (uint);
+}

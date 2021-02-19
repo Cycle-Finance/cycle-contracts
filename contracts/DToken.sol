@@ -4,8 +4,11 @@ pragma abicoder v2;
 
 import "./DTokenInterface.sol";
 
-contract DToken is DTokenStorage {
-    function mintInternal(uint mintAmount) internal nonReentrant returns(string){
+abstract contract DToken is DTokenStorage {
+
+    constructor(string memory name, string memory symbol)DTokenStorage(name, symbol) {}
+
+    function mintInternal(uint mintAmount) internal nonReentrant returns (string memory){
         return "";
     }
 }

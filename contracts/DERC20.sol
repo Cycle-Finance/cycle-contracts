@@ -5,5 +5,5 @@ pragma abicoder v2;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./DToken.sol";
 
-contract DERC20 is DToken {
+abstract contract DERC20 is DToken {
 }

@@ -5,13 +5,13 @@ pragma abicoder v2;
 import "./DToken.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-contract DEther is DToken, ERC20 {
+abstract contract DEther is DToken {
 
     fallback() external payable {
         _mint(msg.sender, msg.value);
     }
 
-    constructor()ERC20("Blockchain Development Bank Ether Deposit Token", "dETH"){
+    constructor()DToken("Blockchain Development Bank Ether Deposit Token", "dETH"){
 
     }
 

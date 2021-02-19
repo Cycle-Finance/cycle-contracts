@@ -3,12 +3,13 @@ pragma solidity ^0.7.0;
 
 import "./Oracle.sol";
 import "./BorrowsInterface.sol";
+import "./CycleStableCoin.sol";
 
 contract ComptrollerStorage {
 
     Oracle public oracle;
 
-    address public CFSC;
+    CycleStableCoin public CFSC;
 
     address public CFGT;
 
@@ -20,8 +21,10 @@ contract ComptrollerStorage {
 
     BorrowsInterface public borrowPool;
 
+    uint constant public INITIAL_INDEX = 1e36;
+
     /// @dev market deposit
-    /// @notice deposit is represented by USD, and the value is Exp, not scalar
+    /// @notice deposit is represented by USD, and the value is scalar
     uint public totalDeposit;
     // market deposit is the weight of interest distribution and CFGT distribution
     // dTokenAddress => depositValue
@@ -38,11 +41,14 @@ contract ComptrollerStorage {
     // distribute CFGT to supplier
     uint public supplyDistributedBlock;
     mapping(address => uint) public supplyIndex;
+    // market => user => index
     mapping(address => mapping(address => uint)) public supplierIndex;
     // distribute CFGT to borrower
     uint public borrowDistributedBlock;
     uint public borrowIndex;
     mapping(address => uint) borrowerIndex;
+    // user accrued CFGT
+    mapping(address => uint) userAccrued;
     // CFGT distribution speed
     uint public supplySpeed;
     uint public borrowSpeed;

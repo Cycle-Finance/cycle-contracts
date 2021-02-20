@@ -31,10 +31,12 @@ contract DTokenStorage is ERC20, Ownable {
 }
 
 interface DTokenInterface {
-    // return the value of underlying asset, represented by USD
+    // return the value of underlying asset, represented by USD, the value is exponential
     function deposit() external view returns (uint);
-    // return the value of the balance of user underlying asset, represented by USD
+    // return the value of the balance of user underlying asset, represented by USD, the value is exponential
     function userDeposit(address account) external view returns (uint);
-    // return the value of the specified number of token
+    // return the value of the specified number of token, the value is exponential
     function tokenValue(uint amount) external view returns (uint);
+    // return the number of token that value equals `value`, the value is scalar
+    function tokenAmount(uint value) external view returns (uint);
 }

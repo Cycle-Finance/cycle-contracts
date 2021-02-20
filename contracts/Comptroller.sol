@@ -8,6 +8,8 @@ import "./math/Exponential.sol";
 import "./SafeERC20.sol";
 import "./DTokenInterface.sol";
 
+// TODO: pause guardian
+
 contract Comptroller is ComptrollerStorage, Ownable, Exponential {
 
     /* event */
@@ -15,17 +17,22 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
     event DistributeSupplierCFGT(address indexed market, address indexed user, uint amount, uint index);
     event DistributeBorrowerCFGT(address indexed user, uint amount, uint index);
 
-    constructor()Ownable(){}
+    constructor()Ownable(){
+        refreshedBlock = block.number;
+    }
 
     /*
     * @notice accrue interest, update interest index, update supply CFGT index, refresh market deposit
     * @notice the function could be invoked individually
     */
     function refreshMarketDeposit() public {
+        uint deltaBlock = sub_(block.number, refreshedBlock);
+        if (deltaBlock == 0) {
+            return;
+        }
         /* borrow pool accrue interest */
         uint interest = borrowPool.accrueInterest();
         /*  update interest index, update supply CFGT index, refresh market deposit */
-        uint deltaBlock = sub_(block.number, supplyDistributedBlock);
         uint supplyCFGTAccrued = mul_(supplySpeed, deltaBlock);
         uint tempTotalDeposit = 0;
         for (uint i = 0; i < markets.length; i++) {
@@ -52,10 +59,8 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
             marketDeposit[market] = deposit;
             tempTotalDeposit += deposit;
         }
-        // record supply distribution block
-        if (deltaBlock > 0) {
-            supplyDistributedBlock = block.number;
-        }
+        // record refreshed block
+        refreshedBlock = block.number;
         // update total deposit
         totalDeposit = tempTotalDeposit;
     }
@@ -124,80 +129,205 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
     }
 
     /// @return 0 means that no error
-    function mintAllowed(address dToken, address minter, uint amount) public returns (uint){
+    function mintAllowed(address dToken, address minter, uint amount) public returns (string memory){
+        refreshMarketDeposit();
         distributeInterest(dToken, minter);
         distributeSupplierCFGT(dToken, minter);
-        refreshMarketDeposit();
-        return 0;
+        return "";
     }
 
     /// @return 0 means that no error
-    function mintVerified(address dToken, address minter, uint amount) public returns (uint){
-        return 0;
+    function mintVerified(address dToken, address minter, uint amount) public returns (string memory){
+        return "";
     }
 
-    /// @return (errCode, liquidity, shortfall)
+    function redeemAllowed(address dToken, address redeemer, uint redeemTokens)
+    public returns (string memory){
+        refreshMarketDeposit();
+        distributeInterest(dToken, redeemer);
+        distributeSupplierCFGT(dToken, redeemer);
+        (MathError err, , uint shortfall) = getHypotheticalAccountLiquidity(redeemer, dToken, redeemTokens, 0);
+        if (err != MathError.NO_ERROR) {
+            return "calculate account liquidity failed";
+        }
+        if (shortfall > 0) {
+            return "insufficient liquidity";
+        }
+        return "";
+    }
+
+    function redeemVerify(address dToken, address minter, uint amount) public returns (string memory){
+        return "";
+    }
+
+    function borrowAllowed(address user, uint borrowAmount) public returns (string memory){
+        refreshMarketDeposit();
+        updateBorrowIndex();
+        distributeBorrowerCFGT(user);
+        (MathError err, , uint shortfall) = getHypotheticalAccountLiquidity(user, address(0), 0, borrowAmount);
+        if (err != MathError.NO_ERROR) {
+            return "calculate account liquidity failed";
+        }
+        if (shortfall > 0) {
+            return "insufficient liquidity";
+        }
+        return "";
+    }
+
+    function borrowVerify(address user, uint borrowAmount) public returns (string memory){
+        return "";
+    }
+
+    function repayBorrowAllowed(address user, uint repayAmount) public returns (string memory){
+        refreshMarketDeposit();
+        updateBorrowIndex();
+        distributeBorrowerCFGT(user);
+        return "";
+    }
+
+    function repayBorrowVerify(address user, uint repayAmount) public returns (string memory){
+        return "";
+    }
+
+    function liquidateBorrowAllowed(address dToken, address liquidator, address borrower, uint repayAmount)
+    public returns (string memory){
+        refreshMarketDeposit();
+        (uint err, , uint shortfall) = getAccountLiquidity(borrower);
+        if (err != 0) {
+            return "calculate account liquidity failed";
+        }
+        if (shortfall == 0) {
+            return "insufficient shortfall";
+        }
+        uint borrowBalance = borrowPool.getBorrows(liquidator);
+        (MathError mathErr, uint maxClose) = mulScalarTruncate(Exp({mantissa : closeFactor}), borrowBalance);
+        if (mathErr != MathError.NO_ERROR) {
+            return "calculate maxClose failed";
+        }
+        if (repayAmount > maxClose) {
+            return "liquidate too much";
+        }
+        return "";
+    }
+
+    function liquidateBorrowVerify(address dToken, address liquidator, address borrower, uint repayAmount)
+    public returns (string memory){
+        return "";
+    }
+
+    function seizeAllowed(address dToken, address liquidator, address borrower, uint seizedTokens)
+    public returns (string memory){
+        // there is no need refresh market deposit here, because liquidate and repay borrow happened
+        distributeInterest(dToken, liquidator);
+        distributeInterest(dToken, borrower);
+        distributeSupplierCFGT(dToken, liquidator);
+        distributeSupplierCFGT(dToken, borrower);
+        return "";
+    }
+
+    function seizeVerify(address dToken, address liquidator, address borrower, uint seizedTokens)
+    public returns (string memory){
+        return "";
+    }
+
+    function transferAllowed(address dToken, address from, address to, uint amount)
+    public returns (string memory){
+        refreshMarketDeposit();
+        distributeInterest(dToken, from);
+        distributeInterest(dToken, to);
+        distributeSupplierCFGT(dToken, from);
+        distributeSupplierCFGT(dToken, to);
+        (MathError err, , uint shortfall) = getHypotheticalAccountLiquidity(from, dToken, amount, 0);
+        if (err != MathError.NO_ERROR) {
+            return "calculate account liquidity failed";
+        }
+        if (shortfall > 0) {
+            return "insufficient liquidity";
+        }
+        return "";
+    }
+
+    function transferVerify(address dToken, address from, address to, address amount)
+    public returns (string memory){
+        return "";
+    }
+
+    function liquidateCalculateSeizeTokens(address dToken, uint repayAmount)
+    public view returns (string memory, uint){
+        Exp memory repayValue = Exp(repayAmount * expScale);
+        (MathError err, Exp memory incentiveRepayValue) = mulExp(Exp(liquidationIncentive), repayValue);
+        if (err != MathError.NO_ERROR) {
+            return ("calculate incentive value failed", 0);
+        }
+        uint seizedTokens = DTokenInterface(dToken).tokenAmount(incentiveRepayValue.mantissa);
+        return ("", 0);
+    }
+
+    /// @return (errCode, liquidity, shortfall), the value is exponential
     function getAccountLiquidity(address account) public view returns (uint, uint, uint){
         (MathError err, uint liquidity, uint shortfall) = getHypotheticalAccountLiquidity(account, address(0), 0, 0);
         return (uint(err), liquidity, shortfall);
     }
 
     function getHypotheticalAccountLiquidity(address account, address dToken, uint redeemTokens, uint borrowAmount)
-    internal returns (MathError, uint, uint){
+    internal view returns (MathError, uint, uint){
         if (account == publicBorrower) {
             return getHypotheticalPublicBorrowerLiquidity(borrowAmount);
         }
-        (MathError err, uint borrowLimit) = getAccountBorrowLimit(account);
+        (MathError err, uint accountBorrowLimit) = getAccountBorrowLimit(account);
         if (err != MathError.NO_ERROR) {
             return (err, 0, 0);
         }
-        uint hypotheticalBorrows = add_(DTokenInterface(dToken).tokenValue(redeemTokens), borrowAmount);
-        if (borrowLimit > hypotheticalBorrows) {
-            return (MathError.NO_ERROR, borrowLimit - hypotheticalBorrows, 0);
+        Exp memory redeems = Exp(redeemTokens > 0 ? DTokenInterface(dToken).tokenValue(redeemTokens) : 0);
+        Exp memory hypotheticalBorrows = add_(redeems, Exp(borrowAmount * expScale));
+        Exp memory borrowLimit = Exp(accountBorrowLimit);
+        if (lessThanExp(hypotheticalBorrows, borrowLimit)) {
+            return (MathError.NO_ERROR, sub_(borrowLimit, hypotheticalBorrows).mantissa, 0);
         } else {
-            return (MathError.NO_ERROR, 0, hypotheticalBorrows - borrowLimit);
+            return (MathError.NO_ERROR, 0, sub_(hypotheticalBorrows, borrowLimit).mantissa);
         }
     }
 
     function getHypotheticalPublicBorrowerLiquidity(uint borrowAmount)
-    internal returns (MathError, uint, uint){
+    internal view returns (MathError, uint, uint){
         Exp memory systemFactor = Exp(systemCollateralFactor);
-        (MathError err, uint borrowLimit) = mulScalarTruncate(systemFactor, totalDeposit);
+        Exp memory deposit = Exp(totalDeposit);
+        (MathError err, Exp memory borrowLimit) = mulExp(systemFactor, deposit);
         if (err != MathError.NO_ERROR) {
             return (err, 0, 0);
         }
         uint totalBorrows = borrowPool.totalBorrows();
         uint publicBorrows = borrowPool.getBorrows(publicBorrower);
-        uint userBorrows = sub_(totalBorrows, publicBorrows);
-        uint hypotheticalPublicBorrows = add_(publicBorrows, borrowAmount);
-        if (userBorrows < borrowLimit) {
-            uint gap = borrowLimit - userBorrows;
-            if (hypotheticalPublicBorrows < gap) {
-                return (MathError.NO_ERROR, gap - hypotheticalPublicBorrows, 0);
+        Exp memory userBorrows = Exp((totalBorrows - publicBorrows) * expScale);
+        Exp memory hypotheticalPublicBorrows = Exp((publicBorrows + borrowAmount) * expScale);
+        if (lessThanExp(userBorrows, borrowLimit)) {
+            Exp memory gap = sub_(borrowLimit, userBorrows);
+            if (lessThanExp(hypotheticalPublicBorrows, gap)) {
+                return (MathError.NO_ERROR, sub_(gap, hypotheticalPublicBorrows).mantissa, 0);
             } else {
-                return (MathError.NO_ERROR, 0, hypotheticalPublicBorrows - gap);
+                return (MathError.NO_ERROR, 0, sub_(hypotheticalPublicBorrows, gap).mantissa);
             }
         } else {
-            return (MathError.NO_ERROR, 0, hypotheticalPublicBorrows);
+            return (MathError.NO_ERROR, 0, hypotheticalPublicBorrows.mantissa);
         }
     }
 
-    /// @return (errCode, borrowLimit)
+    /// @return (errCode, borrowLimit), value is exponential
     function getAccountBorrowLimit(address account) public view returns (MathError, uint){
-        uint borrowLimit = 0;
+        Exp memory borrowLimit = Exp(0);
         for (uint i = 0; i < markets.length; i++) {
             address market = markets[i];
-            uint userDeposit = DTokenInterface(market).userDeposit(account);
-            if (userDeposit == 0) {
+            Exp memory userDeposit = Exp(DTokenInterface(market).userDeposit(account));
+            if (userDeposit.mantissa == 0) {
                 continue;
             }
             Exp memory factor = Exp(collateralFactor[market]);
-            (MathError err, uint assetBorrowLimit) = mulScalarTruncate(factor, userDeposit);
+            (MathError err, Exp memory assetBorrowLimit) = mulExp(factor, userDeposit);
             if (err != MathError.NO_ERROR) {
-                return (err, 0, 0);
+                return (err, 0);
             }
-            borrowLimit += assetBorrowLimit;
+            borrowLimit = add_(borrowLimit, assetBorrowLimit);
         }
-        return borrowLimit;
+        return (MathError.NO_ERROR, borrowLimit.mantissa);
     }
 }

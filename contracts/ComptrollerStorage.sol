@@ -18,18 +18,15 @@ contract ComptrollerStorage {
 
     // supported dToken markets
     address[] public markets;
-    // asset collateral factor, is exponential
-    mapping(address => uint) collateralFactor;
-
-    /// @notice totalDeposit * systemCollateralFactor >= totalBorrows
-    uint public systemCollateralFactor;
 
     BorrowsInterface public borrowPool;
 
     uint constant public INITIAL_INDEX = 1e36;
 
     /// @dev market deposit
-    /// @notice deposit is represented by USD, and the value is scalar
+    /// @notice each block refresh market deposit only once
+    uint public refreshedBlock;
+    /// @notice deposit is represented by USD, and the value is exponential
     uint public totalDeposit;
     // market deposit is the weight of interest distribution and CFGT distribution
     // dTokenAddress => depositValue
@@ -57,4 +54,14 @@ contract ComptrollerStorage {
     // CFGT distribution speed
     uint public supplySpeed;
     uint public borrowSpeed;
+
+    /* system configure */
+    // asset collateral factor, is exponential
+    mapping(address => uint) collateralFactor;
+    /// @notice totalDeposit * systemCollateralFactor >= totalBorrows
+    uint public systemCollateralFactor;
+    /// @notice multiplier used to calculate the maximum repayAmount when liquidating a borrow
+    uint public closeFactor;
+    /// @notice multiplier representing the discount on collateral that a liquidator receives
+    uint public liquidationIncentive;
 }

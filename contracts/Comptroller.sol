@@ -55,7 +55,7 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
                 }
             }
             /* update market deposit */
-            uint deposit = DTokenInterface(market).deposit();
+            uint deposit = DTokenInterface(market).depositValue();
             marketDeposit[market] = deposit;
             tempTotalDeposit += deposit;
         }
@@ -152,8 +152,21 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
         return "";
     }
 
-    function seizeAllowed(address dToken, address liquidator, address borrower, uint seizedTokens)
+    function seizeAllowed(address dToken, address _borrowPool, address liquidator, address borrower, uint seizedTokens)
     public returns (string memory){
+        // check dToken is registered
+        bool existed = false;
+        for (uint i = 0; i < markets.length; i++) {
+            if (markets[i] == dToken) {
+                existed = true;
+            }
+        }
+        if (!existed) {
+            return "dToken not existed";
+        }
+        if (_borrowPool != address(borrowPool)) {
+            return "borrow pool mismatch";
+        }
         // there is no need refresh market deposit here, because liquidate and repay borrow happened
         distributeInterest(dToken, liquidator);
         distributeInterest(dToken, borrower);
@@ -211,9 +224,9 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
         if (account == publicBorrower) {
             return getHypotheticalPublicBorrowerLiquidity(borrowAmount);
         }
-        (MathError err, uint accountBorrowLimit) = getAccountBorrowLimit(account);
-        if (err != MathError.NO_ERROR) {
-            return (err, 0, 0);
+        (uint mErr, uint accountBorrowLimit) = getAccountBorrowLimit(account);
+        if (mErr != 0) {
+            return (MathError(mErr), 0, 0);
         }
         Exp memory redeems = Exp(redeemTokens > 0 ? DTokenInterface(dToken).tokenValue(redeemTokens) : 0);
         Exp memory hypotheticalBorrows = add_(redeems, Exp(borrowAmount * expScale));
@@ -250,22 +263,22 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
     }
 
     /// @return (errCode, borrowLimit), value is exponential
-    function getAccountBorrowLimit(address account) public view returns (MathError, uint){
+    function getAccountBorrowLimit(address account) public view returns (uint, uint){
         Exp memory borrowLimit = Exp(0);
         for (uint i = 0; i < markets.length; i++) {
             address market = markets[i];
-            Exp memory userDeposit = Exp(DTokenInterface(market).userDeposit(account));
+            Exp memory userDeposit = Exp(DTokenInterface(market).userDepositValue(account));
             if (userDeposit.mantissa == 0) {
                 continue;
             }
             Exp memory factor = Exp(collateralFactor[market]);
             (MathError err, Exp memory assetBorrowLimit) = mulExp(factor, userDeposit);
             if (err != MathError.NO_ERROR) {
-                return (err, 0);
+                return (uint(err), 0);
             }
             borrowLimit = add_(borrowLimit, assetBorrowLimit);
         }
-        return (MathError.NO_ERROR, borrowLimit.mantissa);
+        return (0, borrowLimit.mantissa);
     }
 
     /* distribution function */
@@ -391,9 +404,14 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
         DTokenInterface dToken = DTokenInterface(market);
         // check some dToken interface
         require(dToken.isDToken());
-        require(dToken.userDeposit(address(this)) == 0);
-        require(dToken.deposit() == 0);
+        require(dToken.userDepositValue(address(this)) == 0);
+        require(dToken.depositValue() == 0);
         markets.push(market);
         refreshMarketDeposit();
+    }
+
+    function reduceServes() public onlyOwner {
+        refreshMarketDeposit();
+        borrowPool.reduceReserves(owner());
     }
 }

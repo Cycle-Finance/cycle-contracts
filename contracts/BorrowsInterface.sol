@@ -5,6 +5,9 @@ interface BorrowsInterface {
 
     function accrueInterest() external returns (uint);
 
+    // return reserves amount
+    function reduceReserves(address recipient) external returns(uint);
+
     function borrowIndex()external view returns (uint);
 
     // return total borrows, is scalar

@@ -122,4 +122,82 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
         }
         emit DistributeBorrowerCFGT(user, userDelta, globalState.mantissa);
     }
+
+    /// @return 0 means that no error
+    function mintAllowed(address dToken, address minter, uint amount) public returns (uint){
+        distributeInterest(dToken, minter);
+        distributeSupplierCFGT(dToken, minter);
+        refreshMarketDeposit();
+        return 0;
+    }
+
+    /// @return 0 means that no error
+    function mintVerified(address dToken, address minter, uint amount) public returns (uint){
+        return 0;
+    }
+
+    /// @return (errCode, liquidity, shortfall)
+    function getAccountLiquidity(address account) public view returns (uint, uint, uint){
+        (MathError err, uint liquidity, uint shortfall) = getHypotheticalAccountLiquidity(account, address(0), 0, 0);
+        return (uint(err), liquidity, shortfall);
+    }
+
+    function getHypotheticalAccountLiquidity(address account, address dToken, uint redeemTokens, uint borrowAmount)
+    internal returns (MathError, uint, uint){
+        if (account == publicBorrower) {
+            return getHypotheticalPublicBorrowerLiquidity(borrowAmount);
+        }
+        (MathError err, uint borrowLimit) = getAccountBorrowLimit(account);
+        if (err != MathError.NO_ERROR) {
+            return (err, 0, 0);
+        }
+        uint hypotheticalBorrows = add_(DTokenInterface(dToken).tokenValue(redeemTokens), borrowAmount);
+        if (borrowLimit > hypotheticalBorrows) {
+            return (MathError.NO_ERROR, borrowLimit - hypotheticalBorrows, 0);
+        } else {
+            return (MathError.NO_ERROR, 0, hypotheticalBorrows - borrowLimit);
+        }
+    }
+
+    function getHypotheticalPublicBorrowerLiquidity(uint borrowAmount)
+    internal returns (MathError, uint, uint){
+        Exp memory systemFactor = Exp(systemCollateralFactor);
+        (MathError err, uint borrowLimit) = mulScalarTruncate(systemFactor, totalDeposit);
+        if (err != MathError.NO_ERROR) {
+            return (err, 0, 0);
+        }
+        uint totalBorrows = borrowPool.totalBorrows();
+        uint publicBorrows = borrowPool.getBorrows(publicBorrower);
+        uint userBorrows = sub_(totalBorrows, publicBorrows);
+        uint hypotheticalPublicBorrows = add_(publicBorrows, borrowAmount);
+        if (userBorrows < borrowLimit) {
+            uint gap = borrowLimit - userBorrows;
+            if (hypotheticalPublicBorrows < gap) {
+                return (MathError.NO_ERROR, gap - hypotheticalPublicBorrows, 0);
+            } else {
+                return (MathError.NO_ERROR, 0, hypotheticalPublicBorrows - gap);
+            }
+        } else {
+            return (MathError.NO_ERROR, 0, hypotheticalPublicBorrows);
+        }
+    }
+
+    /// @return (errCode, borrowLimit)
+    function getAccountBorrowLimit(address account) public view returns (MathError, uint){
+        uint borrowLimit = 0;
+        for (uint i = 0; i < markets.length; i++) {
+            address market = markets[i];
+            uint userDeposit = DTokenInterface(market).userDeposit(account);
+            if (userDeposit == 0) {
+                continue;
+            }
+            Exp memory factor = Exp(collateralFactor[market]);
+            (MathError err, uint assetBorrowLimit) = mulScalarTruncate(factor, userDeposit);
+            if (err != MathError.NO_ERROR) {
+                return (err, 0, 0);
+            }
+            borrowLimit += assetBorrowLimit;
+        }
+        return borrowLimit;
+    }
 }

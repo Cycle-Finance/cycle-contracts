@@ -18,6 +18,11 @@ contract ComptrollerStorage {
 
     // supported dToken markets
     address[] public markets;
+    // asset collateral factor, is exponential
+    mapping(address => uint) collateralFactor;
+
+    /// @notice totalDeposit * systemCollateralFactor >= totalBorrows
+    uint public systemCollateralFactor;
 
     BorrowsInterface public borrowPool;
 

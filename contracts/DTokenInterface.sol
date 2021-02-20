@@ -33,4 +33,8 @@ contract DTokenStorage is ERC20, Ownable {
 interface DTokenInterface {
     // return the value of underlying asset, represented by USD
     function deposit() external view returns (uint);
+    // return the value of the balance of user underlying asset, represented by USD
+    function userDeposit(address account) external view returns (uint);
+    // return the value of the specified number of token
+    function tokenValue(uint amount) external view returns (uint);
 }

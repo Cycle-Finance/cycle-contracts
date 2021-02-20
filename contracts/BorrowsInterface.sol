@@ -5,9 +5,11 @@ interface BorrowsInterface {
 
     function accrueInterest() external returns (uint);
 
+    function borrowIndex()external view returns (uint);
+
     // return total borrows, is scalar
     function totalBorrows() external view returns (uint);
 
-    // return user latest borrows, is scalar
+    // return user latest borrows(after multiply latest borrowIndex), is scalar
     function getBorrows(address user) external view returns (uint);
 }

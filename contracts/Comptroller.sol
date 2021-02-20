@@ -65,69 +65,6 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
         totalDeposit = tempTotalDeposit;
     }
 
-    // update CFGT borrower distribution index
-    function updateBorrowIndex() internal {
-        uint deltaBlock = block.number - borrowDistributedBlock;
-        uint borrowCFGTAccrued = mul_(borrowSpeed, deltaBlock);
-        uint totalBorrows = borrowPool.totalBorrows();
-        if (borrowCFGTAccrued > 0) {
-            Double memory ratio = fraction(borrowCFGTAccrued, totalBorrows);
-            borrowIndex = add_(borrowIndex, ratio.mantissa);
-        } else if (deltaBlock > 0) {
-            borrowDistributedBlock = block.number;
-        }
-    }
-
-    function distributeInterest(address market, address user) internal {
-        Double memory marketState = Double(marketInterestIndex[market]);
-        Double memory userState = Double(userInterestIndex[market][user]);
-        // update user interest index
-        userInterestIndex[market][user] = marketInterestIndex[market];
-        if (userState.mantissa == 0 && marketState.mantissa > 0) {
-            userState.mantissa = INITIAL_INDEX;
-        }
-        Double memory deltaIndex = sub_(marketState, userState);
-        uint userBalance = IERC20(market).balanceOf(user);
-        uint userDelta = mul_(userBalance, deltaIndex);
-        CFSC.mint(user, userDelta);
-        emit DistributeInterest(market, user, userDelta, marketState.mantissa);
-    }
-
-    function distributeSupplierCFGT(address market, address user) internal {
-        Double memory marketState = Double(supplyIndex[market]);
-        Double memory userState = Double(supplierIndex[market][user]);
-        // update supplier index
-        supplierIndex[market][user] = supplyIndex[market];
-        if (userState.mantissa == 0 && marketState.mantissa > 0) {
-            userState.mantissa = INITIAL_INDEX;
-        }
-        Double memory deltaIndex = sub_(marketState, userState);
-        uint userBalance = IERC20(market).balanceOf(user);
-        uint userDelta = mul_(userBalance, deltaIndex);
-        userAccrued[user] = add_(userAccrued[user], userDelta);
-        if (IERC20(CFGT).transferFrom(CFGT, user, userAccrued[user])) {
-            userAccrued[user] = 0;
-        }
-        emit DistributeSupplierCFGT(market, user, userDelta, marketState.mantissa);
-    }
-
-    function distributeBorrowerCFGT(address user) internal {
-        Double memory globalState = Double(borrowIndex);
-        Double memory userState = Double(borrowerIndex[user]);
-        borrowerIndex[user] = borrowIndex;
-        if (userState.mantissa == 0 && globalState.mantissa > 0) {
-            userState.mantissa = INITIAL_INDEX;
-        }
-        Double memory deltaIndex = sub_(globalState, userState);
-        uint userBorrows = borrowPool.getBorrows(user);
-        uint userDelta = mul_(userBorrows, deltaIndex);
-        userAccrued[user] = add_(userAccrued[user], userDelta);
-        if (IERC20(CFGT).transferFrom(CFGT, user, userAccrued[user])) {
-            userAccrued[user] = 0;
-        }
-        emit DistributeBorrowerCFGT(user, userDelta, globalState.mantissa);
-    }
-
     /// @return 0 means that no error
     function mintAllowed(address dToken, address minter, uint amount) public returns (string memory){
         refreshMarketDeposit();
@@ -329,5 +266,134 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
             borrowLimit = add_(borrowLimit, assetBorrowLimit);
         }
         return (MathError.NO_ERROR, borrowLimit.mantissa);
+    }
+
+    /* distribution function */
+
+    // update CFGT borrower distribution index
+    /// @notice if there are no borrows, accrued CFGT has been accumulated
+    function updateBorrowIndex() internal {
+        uint deltaBlock = block.number - borrowDistributedBlock;
+        if (deltaBlock > 0 && borrowSpeed > 0) {
+            uint borrowCFGTAccrued = mul_(borrowSpeed, deltaBlock);
+            Exp memory borrowPoolIndex = Exp(borrowPool.borrowIndex());
+            uint totalBorrows = div_(borrowPool.totalBorrows(), borrowPoolIndex);
+            if (totalBorrows > 0) {
+                Double memory ratio = fraction(borrowCFGTAccrued, totalBorrows);
+                borrowIndex = add_(borrowIndex, ratio.mantissa);
+                borrowDistributedBlock = block.number;
+            }
+        } else if (deltaBlock > 0) {
+            borrowDistributedBlock = block.number;
+        }
+    }
+
+    function distributeInterest(address market, address user) internal {
+        Double memory marketState = Double(marketInterestIndex[market]);
+        Double memory userState = Double(userInterestIndex[market][user]);
+        // update user interest index
+        userInterestIndex[market][user] = marketInterestIndex[market];
+        if (userState.mantissa == 0 && marketState.mantissa > 0) {
+            userState.mantissa = INITIAL_INDEX;
+        }
+        Double memory deltaIndex = sub_(marketState, userState);
+        uint userBalance = IERC20(market).balanceOf(user);
+        uint userDelta = mul_(userBalance, deltaIndex);
+        CFSC.mint(user, userDelta);
+        emit DistributeInterest(market, user, userDelta, marketState.mantissa);
+    }
+
+    function distributeSupplierCFGT(address market, address user) internal {
+        Double memory marketState = Double(supplyIndex[market]);
+        Double memory userState = Double(supplierIndex[market][user]);
+        // update supplier index
+        supplierIndex[market][user] = supplyIndex[market];
+        if (userState.mantissa == 0 && marketState.mantissa > 0) {
+            userState.mantissa = INITIAL_INDEX;
+        }
+        Double memory deltaIndex = sub_(marketState, userState);
+        uint userBalance = IERC20(market).balanceOf(user);
+        uint userDelta = mul_(userBalance, deltaIndex);
+        userAccrued[user] = add_(userAccrued[user], userDelta);
+        if (IERC20(CFGT).transferFrom(CFGT, user, userAccrued[user])) {
+            userAccrued[user] = 0;
+        }
+        emit DistributeSupplierCFGT(market, user, userDelta, marketState.mantissa);
+    }
+
+    function distributeBorrowerCFGT(address user) internal {
+        Double memory globalState = Double(borrowIndex);
+        Double memory userState = Double(borrowerIndex[user]);
+        borrowerIndex[user] = borrowIndex;
+        if (userState.mantissa == 0 && globalState.mantissa > 0) {
+            userState.mantissa = INITIAL_INDEX;
+        }
+        Double memory deltaIndex = sub_(globalState, userState);
+        Exp memory borrowPoolIndex = Exp(borrowPool.borrowIndex());
+        uint userBorrows = div_(borrowPool.getBorrows(user), borrowPoolIndex);
+        uint userDelta = mul_(userBorrows, deltaIndex);
+        userAccrued[user] = add_(userAccrued[user], userDelta);
+        if (IERC20(CFGT).transferFrom(CFGT, user, userAccrued[user])) {
+            userAccrued[user] = 0;
+        }
+        emit DistributeBorrowerCFGT(user, userDelta, globalState.mantissa);
+    }
+
+    function claimAllProfit(address[] memory accounts) public {
+        refreshMarketDeposit();
+        updateBorrowIndex();
+        for (uint i = 0; i < accounts.length; i++) {
+            for (uint j = 0; j < markets.length; j++) {
+                distributeInterest(markets[j], accounts[i]);
+                distributeSupplierCFGT(markets[j], accounts[i]);
+            }
+            distributeBorrowerCFGT(accounts[i]);
+        }
+    }
+
+    function claimInterest(address[] memory markets, address[] memory accounts) public {
+        refreshMarketDeposit();
+        for (uint i = 0; i < accounts.length; i++) {
+            for (uint j = 0; j < markets.length; j++) {
+                distributeInterest(markets[j], accounts[i]);
+            }
+        }
+    }
+
+    function claimSupplierCFGT(address[] memory markets, address[] memory accounts) public {
+        refreshMarketDeposit();
+        for (uint i = 0; i < accounts.length; i++) {
+            for (uint j = 0; j < markets.length; j++) {
+                distributeSupplierCFGT(markets[j], accounts[i]);
+            }
+        }
+    }
+
+    function claimBorrowerCFGT(address[] memory accounts) public {
+        refreshMarketDeposit();
+        updateBorrowIndex();
+        for (uint i = 0; i < accounts.length; i++) {
+            distributeBorrowerCFGT(accounts[i]);
+        }
+    }
+
+    /* admin function */
+
+    function registerMarket(address market) public onlyOwner {
+        bool existed = false;
+        for (uint i = 0; i < markets.length; i++) {
+            if (markets[i] == market) {
+                existed = true;
+                break;
+            }
+        }
+        require(!existed, "already registered");
+        DTokenInterface dToken = DTokenInterface(market);
+        // check some dToken interface
+        require(dToken.isDToken());
+        require(dToken.userDeposit(address(this)) == 0);
+        require(dToken.deposit() == 0);
+        markets.push(market);
+        refreshMarketDeposit();
     }
 }

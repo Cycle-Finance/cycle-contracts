@@ -43,7 +43,7 @@ abstract contract DTokenStorage is ERC20, Ownable, ErrorReporter {
 
     function transferIn(address from, uint amount) internal virtual returns (uint);
 
-    function transferOut(address to, uint amount) internal virtual returns (uint);
+    function transferOut(address payable to, uint amount) internal virtual;
 }
 
 interface DTokenInterface {

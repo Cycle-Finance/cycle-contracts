@@ -244,7 +244,7 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
             return ("calculate incentive value failed", 0);
         }
         uint seizedTokens = DTokenInterface(dToken).tokenAmount(incentiveRepayValue.mantissa);
-        return ("", 0);
+        return ("", seizedTokens);
     }
 
     /// @return (errCode, liquidity, shortfall), the value is exponential

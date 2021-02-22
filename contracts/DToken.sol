@@ -25,9 +25,9 @@ abstract contract DToken is DTokenStorage, Exponential {
             emit Fail(errMsg);
             return errMsg;
         }
-        transferIn(msg.sender, mintAmount);
-        _mint(msg.sender, mintAmount);
-        errMsg = comptroller.mintVerify(address(this), msg.sender, mintAmount);
+        uint actualMintAmount = transferIn(msg.sender, mintAmount);
+        _mint(msg.sender, actualMintAmount);
+        errMsg = comptroller.mintVerify(address(this), msg.sender, actualMintAmount);
         if (bytes(errMsg).length != 0) {
             emit Fail(errMsg);
         }

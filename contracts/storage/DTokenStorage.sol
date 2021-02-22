@@ -18,13 +18,13 @@ abstract contract DTokenStorage is ERC20, Ownable, ErrorReporter {
 
     IOracle public oracle;
 
+    /// @dev comptroller
+    ComptrollerInterface public comptroller;
+
     /**
      * @dev Guard variable for re-entrancy checks
      */
     bool internal _notEntered;
-
-    /// @dev comptroller
-    ComptrollerInterface public comptroller;
 
     /*** Reentrancy Guard ***/
 

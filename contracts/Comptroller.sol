@@ -3,14 +3,13 @@ pragma solidity ^0.7.0;
 pragma abicoder v2;
 
 import "./storage/ComptrollerStorage.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "./math/Exponential.sol";
 import "./SafeERC20.sol";
 import "./interfaces/DTokenInterface.sol";
 
 // TODO: pause guardian
 
-contract Comptroller is ComptrollerStorage, Ownable, Exponential {
+contract Comptroller is ComptrollerStorage, Exponential {
 
     /* event */
     event DistributeInterest(address indexed market, address indexed user, uint amount, uint index);
@@ -32,10 +31,6 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
     event NewMaxCloseFactor(uint oldFactor, uint newFactor);
     event NewLiquidationIncentive(uint oldIncentive, uint newIncentive);
 
-    constructor()Ownable(){
-        refreshedBlock = block.number;
-    }
-
     /*
     * @notice accrue interest, update interest index, update supply CFGT index, refresh market deposit
     * @notice the function could be invoked individually
@@ -46,7 +41,8 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
             return;
         }
         /* borrow pool accrue interest */
-        uint interest = borrowPool.accrueInterest();
+        (string memory accrueInterestErr, uint interest) = borrowPool.accrueInterest();
+        require(bytes(accrueInterestErr).length == 0, accrueInterestErr);
         /*  update interest index, update supply CFGT index, refresh market deposit */
         uint supplyCFGTAccrued = mul_(supplySpeed, deltaBlock);
         uint tempTotalDeposit = 0;
@@ -80,7 +76,7 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
         totalDeposit = tempTotalDeposit;
     }
 
-    /// @return 0 means that no error
+    // @return 0 means that no error
     function mintAllowed(address dToken, address minter, uint amount) public returns (string memory){
         refreshMarketDeposit();
         distributeInterest(dToken, minter);
@@ -88,9 +84,8 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
         return "";
     }
 
-    /// @return 0 means that no error
-    function mintVerified(address dToken, address minter, uint amount) public returns (string memory){
-        return "";
+    // @return 0 means that no error
+    function mintVerified(address dToken, address minter, uint amount) public {
     }
 
     function redeemAllowed(address dToken, address redeemer, uint redeemTokens)
@@ -115,8 +110,7 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
         return "";
     }
 
-    function redeemVerify(address dToken, address minter, uint amount) public returns (string memory){
-        return "";
+    function redeemVerify(address dToken, address minter, uint amount) public {
     }
 
     function borrowAllowed(address user, uint borrowAmount) public returns (string memory){
@@ -142,19 +136,17 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
         return "";
     }
 
-    function borrowVerify(address user, uint borrowAmount) public returns (string memory){
-        return "";
+    function borrowVerify(address user, uint borrowAmount) public {
     }
 
-    function repayBorrowAllowed(address user, uint repayAmount) public returns (string memory){
+    function repayBorrowAllowed(address payer, address borrower, uint repayAmount) public returns (string memory){
         refreshMarketDeposit();
         updateBorrowIndex();
-        distributeBorrowerCFGT(user);
+        distributeBorrowerCFGT(borrower);
         return "";
     }
 
-    function repayBorrowVerify(address user, uint repayAmount) public returns (string memory){
-        return "";
+    function repayBorrowVerify(address payer, address user, uint repayAmount) public {
     }
 
     function liquidateBorrowAllowed(address dToken, address liquidator, address borrower, uint repayAmount)
@@ -181,9 +173,8 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
         return "";
     }
 
-    function liquidateBorrowVerify(address dToken, address liquidator, address borrower, uint repayAmount)
-    public returns (string memory){
-        return "";
+    function liquidateBorrowVerify(address dToken, address liquidator, address borrower, uint repayAmount,
+        uint seizedTokens) public {
     }
 
     function seizeAllowed(address dToken, address _borrowPool, address liquidator, address borrower, uint seizedTokens)
@@ -210,8 +201,7 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
     }
 
     function seizeVerify(address dToken, address liquidator, address borrower, uint seizedTokens)
-    public returns (string memory){
-        return "";
+    public {
     }
 
     function transferAllowed(address dToken, address from, address to, uint amount)
@@ -231,9 +221,8 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
         return "";
     }
 
-    function transferVerify(address dToken, address from, address to, address amount)
-    public returns (string memory){
-        return "";
+    function transferVerify(address dToken, address from, address to, uint amount)
+    public {
     }
 
     function liquidateCalculateSeizeTokens(address dToken, uint repayAmount)

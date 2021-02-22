@@ -3,12 +3,12 @@ pragma solidity ^0.7.0;
 
 interface BorrowsInterface {
 
-    function accrueInterest() external returns (uint);
+    function accrueInterest() external returns (string memory, uint);
 
     // return reserves amount
-    function reduceReserves(address recipient) external returns(uint);
+    function reduceReserves(address recipient) external returns (uint);
 
-    function borrowIndex()external view returns (uint);
+    function borrowIndex() external view returns (uint);
 
     // return total borrows, is scalar
     function totalBorrows() external view returns (uint);

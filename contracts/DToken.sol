@@ -11,6 +11,10 @@ abstract contract DToken is DTokenStorage, Exponential {
     event NewOracle(IOracle oldOracle, IOracle newOracle);
     event NewComptroller(ComptrollerInterface oldComptroller, ComptrollerInterface newComptroller);
 
+    event Mint(address minter, uint amount);
+    event Redeem(address redeemer, uint amount);
+    event Seize(address liquidator, address borrower, uint amount);
+
     constructor(string memory name, string memory symbol, address _underlyingAsset)DTokenStorage(name, symbol) {
         // check underlying is erc20
         if (_underlyingAsset != address(0)) {
@@ -20,48 +24,50 @@ abstract contract DToken is DTokenStorage, Exponential {
         _notEntered = true;
     }
 
+    function transfer(address recipient, uint256 amount) public override returns (bool) {
+        string memory errMsg = comptroller.transferAllowed(address(this), msg.sender, recipient, amount);
+        if (bytes(errMsg).length != 0) {
+            fail(errMsg);
+            return false;
+        }
+        _transfer(_msgSender(), recipient, amount);
+        comptroller.transferVerify(address(this), msg.sender, recipient, amount);
+        return true;
+    }
+
     function mintInternal(uint mintAmount) internal nonReentrant returns (string memory){
         string memory errMsg = comptroller.mintAllowed(address(this), msg.sender, mintAmount);
         if (bytes(errMsg).length != 0) {
-            emit Fail(errMsg);
-            return errMsg;
+            return fail(errMsg);
         }
         uint actualMintAmount = transferIn(msg.sender, mintAmount);
         _mint(msg.sender, actualMintAmount);
-        errMsg = comptroller.mintVerify(address(this), msg.sender, actualMintAmount);
-        if (bytes(errMsg).length != 0) {
-            emit Fail(errMsg);
-        }
-        return errMsg;
+        comptroller.mintVerify(address(this), msg.sender, actualMintAmount);
+        emit Mint(msg.sender, mintAmount);
+        return "";
     }
 
     function redeemInternal(uint redeemAmount) internal nonReentrant returns (string memory){
         string memory errMsg = comptroller.redeemAllowed(address(this), msg.sender, redeemAmount);
         if (bytes(errMsg).length != 0) {
-            emit Fail(errMsg);
-            return errMsg;
+            return fail(errMsg);
         }
         _burn(msg.sender, redeemAmount);
         transferOut(msg.sender, redeemAmount);
-        errMsg = comptroller.redeemVerify(address(this), msg.sender, redeemAmount);
-        if (bytes(errMsg).length != 0) {
-            emit Fail(errMsg);
-        }
-        return errMsg;
+        comptroller.redeemVerify(address(this), msg.sender, redeemAmount);
+        emit Redeem(msg.sender, redeemAmount);
+        return "";
     }
 
     function seize(address liquidator, address borrower, uint amount) public nonReentrant returns (string memory) {
         string memory errMsg = comptroller.seizeAllowed(address(this), msg.sender, liquidator, borrower, amount);
         if (bytes(errMsg).length != 0) {
-            emit Fail(errMsg);
-            return errMsg;
+            return fail(errMsg);
         }
         _transfer(borrower, liquidator, amount);
-        errMsg = comptroller.seizeVerify(address(this), msg.sender, liquidator, borrower, amount);
-        if (bytes(errMsg).length != 0) {
-            emit Fail(errMsg);
-        }
-        return errMsg;
+        comptroller.seizeVerify(address(this), msg.sender, liquidator, borrower, amount);
+        emit Seize(liquidator, borrower, amount);
+        return "";
     }
 
     function depositValue() public view returns (uint){

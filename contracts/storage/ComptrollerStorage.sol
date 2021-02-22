@@ -4,10 +4,11 @@ pragma solidity ^0.7.0;
 import "../Oracle.sol";
 import "../interfaces/BorrowsInterface.sol";
 import "../CycleStableCoin.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract ComptrollerStorage {
+contract ComptrollerStorage is Ownable {
 
-//    IOracle public oracle;
+    //    IOracle public oracle;
 
     CycleStableCoin public CFSC;
 
@@ -62,4 +63,8 @@ contract ComptrollerStorage {
     uint public maxCloseFactor;
     /// @notice multiplier representing the discount on collateral that a liquidator receives
     uint public liquidationIncentive;
+
+    constructor()Ownable(){
+        refreshedBlock = block.number;
+    }
 }

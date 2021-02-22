@@ -4,7 +4,7 @@ solidity implementation of cycle finance protocol
 
 ## TODO List
 
-- Lending & Borrowing
+- Borrowing
 - Comptroller
   - the size of the compilation result exceeds the limit
   - too many warnings

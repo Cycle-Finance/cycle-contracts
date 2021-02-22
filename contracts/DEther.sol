@@ -11,7 +11,7 @@ contract DEther is DToken {
         require(msg.value == 0, "this contract cannot receive ETH straightly");
     }
 
-    constructor()DToken("Blockchain Development Bank Ether Deposit Token", "dETH", address(0)){
+    constructor()DToken("Cycle Finance Ether Deposit Token", "dETH", address(0)){
 
     }
 

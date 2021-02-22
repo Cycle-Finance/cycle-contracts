@@ -7,7 +7,17 @@ import "./math/Exponential.sol";
 
 abstract contract DToken is DTokenStorage, Exponential {
 
-    constructor(string memory name, string memory symbol)DTokenStorage(name, symbol) {}
+    event NewOracle(IOracle oldOracle, IOracle newOracle);
+    event NewComptroller(ComptrollerInterface oldComptroller, ComptrollerInterface newComptroller);
+
+    constructor(string memory name, string memory symbol, address _underlyingAsset)DTokenStorage(name, symbol) {
+        // check underlying is erc20
+        if (_underlyingAsset != address(0)) {
+            require(IERC20(_underlyingAsset).balanceOf(address(this)) >= 0, "illegal erc20 underlying asset");
+        }
+        underlyingAsset = _underlyingAsset;
+        _notEntered = true;
+    }
 
     function mintInternal(uint mintAmount) internal nonReentrant returns (string memory){
         string memory errMsg = comptroller.mintAllowed(address(this), msg.sender, mintAmount);
@@ -74,5 +84,20 @@ abstract contract DToken is DTokenStorage, Exponential {
         (MathError err, Exp memory amount) = divExp(v, price);
         require(err == MathError.NO_ERROR, "calculate amount failed");
         return truncate(amount);
+    }
+
+    /* admin function */
+
+    function setOracle(IOracle _oracle) public onlyOwner {
+        IOracle oldOracle = oracle;
+        oracle = _oracle;
+        emit NewOracle(oldOracle, _oracle);
+    }
+
+    function setComptroller(ComptrollerInterface _comptroller) public onlyOwner {
+        ComptrollerInterface oldComptroller = comptroller;
+        require(comptroller.isComptroller(), "illegal comptroller");
+        comptroller = _comptroller;
+        emit NewComptroller(oldComptroller, _comptroller);
     }
 }

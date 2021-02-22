@@ -12,6 +12,8 @@ abstract contract DTokenStorage is ERC20, Ownable, ErrorReporter {
 
     // uint constant public EXCHANGE_RATE = 1;
 
+    bool constant public isDToken = true;
+
     // ether address is 0
     address public underlyingAsset;
 

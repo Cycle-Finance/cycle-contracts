@@ -7,7 +7,7 @@ import "./CycleStableCoin.sol";
 
 contract ComptrollerStorage {
 
-    Oracle public oracle;
+//    IOracle public oracle;
 
     CycleStableCoin public CFSC;
 

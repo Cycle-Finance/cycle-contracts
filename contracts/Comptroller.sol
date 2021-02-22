@@ -20,7 +20,7 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
     event RegisterMarket(address dToken);
     event ReduceReserves(address indexed owner, uint amount);
     event NewCFToken(CycleStableCoin oldCFSC, CycleStableCoin newCFSC, address oldCFGT, address newCFGT);
-    event NewOracle(Oracle oldOracle, Oracle newOracle);
+    //    event NewOracle(IOracle oldOracle, IOracle newOracle);
     event NewPublicBorrower(address oldPublicBorrower, address newPublicBorrower);
     event NewBorrowPool(BorrowsInterface oldBorrowPool, BorrowsInterface newBorrowPool);
 
@@ -63,8 +63,8 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
                 marketInterestIndex[market] = add_(marketInterestIndex[market], interestRatio.mantissa);
                 /* update supply index */
                 if (supplyCFGTAccrued > 0) {
-                    (MathError err, uint marketSupplyCFGT) = mulScalarTruncate(marketWeight, supplyCFGTAccrued);
-                    require(err == MathError.NO_ERROR, "cal market interest failed");
+                    (MathError err2, uint marketSupplyCFGT) = mulScalarTruncate(marketWeight, supplyCFGTAccrued);
+                    require(err2 == MathError.NO_ERROR, "cal market interest failed");
                     Double memory supplyRatio = fraction(marketSupplyCFGT, dTokenTotalSupply);
                     supplyIndex[market] = add_(supplyIndex[market], supplyRatio.mantissa);
                 }
@@ -254,7 +254,7 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
     }
 
     function getHypotheticalSystemLiquidity(address dToken, uint redeemTokens, uint borrowAmount)
-    internal returns (MathError, uint, uint){
+    internal view returns (MathError, uint, uint){
         Exp memory systemFactor = Exp(systemUtilizationRate);
         Exp memory deposit = Exp(totalDeposit);
         (MathError err, Exp memory borrowLimit) = mulExp(systemFactor, deposit);
@@ -270,9 +270,9 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
             return (err, 0, 0);
         }
         if (lessThanExp(borrowEffects, borrowLimit)) {
-            return (MathError.No_ERROR, borrowLimit.mantissa - borrowEffects.mantissa, 0);
+            return (MathError.NO_ERROR, borrowLimit.mantissa - borrowEffects.mantissa, 0);
         } else {
-            return (MathError.No_ERROR, 0, borrowEffects.mantissa - borrowLimit.mantissa);
+            return (MathError.NO_ERROR, 0, borrowEffects.mantissa - borrowLimit.mantissa);
         }
     }
 
@@ -463,11 +463,11 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
         borrowPool.reduceReserves(owner());
     }
 
-    function setOracle(Oracle _oracle) public onlyOwner {
-        Oracle oldOracle = oracle;
-        oracle = _oracle;
-        emit NewOracle(oldOracle, _oracle);
-    }
+    //    function setOracle(IOracle _oracle) public onlyOwner {
+    //        IOracle oldOracle = oracle;
+    //        oracle = _oracle;
+    //        emit NewOracle(oldOracle, _oracle);
+    //    }
 
     function setPublicBorrower(address newBorrower) public onlyOwner {
         address oldBorrower = publicBorrower;
@@ -501,7 +501,7 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
     }
 
     function setCollateralFactor(address dToken, uint factor) public onlyOwner {
-        uint oldFactor = collateralFactor;
+        uint oldFactor = collateralFactor[dToken];
         require(factor < expScale, "illegal factor");
         bool exited = false;
         for (uint i = 0; i < markets.length; i++) {

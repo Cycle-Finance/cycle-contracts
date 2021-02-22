@@ -8,10 +8,10 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 abstract contract DEther is DToken {
 
     fallback() external payable {
-        _mint(msg.sender, msg.value);
+        require(msg.value == 0, "this contract cannot receive ETH");
     }
 
-    constructor()DToken("Blockchain Development Bank Ether Deposit Token", "dETH"){
+    constructor()DToken("Blockchain Development Bank Ether Deposit Token", "dETH", address(0)){
 
     }
 

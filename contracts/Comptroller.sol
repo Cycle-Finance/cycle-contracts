@@ -17,6 +17,21 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
     event DistributeSupplierCFGT(address indexed market, address indexed user, uint amount, uint index);
     event DistributeBorrowerCFGT(address indexed user, uint amount, uint index);
 
+    event RegisterMarket(address dToken);
+    event ReduceReserves(address indexed owner, uint amount);
+    event NewCFToken(CycleStableCoin oldCFSC, CycleStableCoin newCFSC, address oldCFGT, address newCFGT);
+    event NewOracle(Oracle oldOracle, Oracle newOracle);
+    event NewPublicBorrower(address oldPublicBorrower, address newPublicBorrower);
+    event NewBorrowPool(BorrowsInterface oldBorrowPool, BorrowsInterface newBorrowPool);
+
+    event NewSupplySpeed(uint oldSpeed, uint newSpeed);
+    event NewBorrowSpeed(uint oldSpeed, uint newSpeed);
+
+    event NewCollateralFactor(address dToken, uint oldFactor, uint newFactor);
+    event NewUtilizationRate(uint oldFactor, uint newFactor);
+    event NewMaxCloseFactor(uint oldFactor, uint newFactor);
+    event NewLiquidationIncentive(uint oldIncentive, uint newIncentive);
+
     constructor()Ownable(){
         refreshedBlock = block.number;
     }
@@ -137,7 +152,7 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
             return "insufficient shortfall";
         }
         uint borrowBalance = borrowPool.getBorrows(liquidator);
-        (MathError mathErr, uint maxClose) = mulScalarTruncate(Exp({mantissa : closeFactor}), borrowBalance);
+        (MathError mathErr, uint maxClose) = mulScalarTruncate(Exp({mantissa : maxCloseFactor}), borrowBalance);
         if (mathErr != MathError.NO_ERROR) {
             return "calculate maxClose failed";
         }
@@ -240,7 +255,7 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
 
     function getHypotheticalPublicBorrowerLiquidity(uint borrowAmount)
     internal view returns (MathError, uint, uint){
-        Exp memory systemFactor = Exp(systemCollateralFactor);
+        Exp memory systemFactor = Exp(systemUtilizationRate);
         Exp memory deposit = Exp(totalDeposit);
         (MathError err, Exp memory borrowLimit) = mulExp(systemFactor, deposit);
         if (err != MathError.NO_ERROR) {
@@ -307,7 +322,7 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
         // update user interest index
         userInterestIndex[market][user] = marketInterestIndex[market];
         if (userState.mantissa == 0 && marketState.mantissa > 0) {
-            userState.mantissa = INITIAL_INDEX;
+            userState.mantissa = doubleScale;
         }
         Double memory deltaIndex = sub_(marketState, userState);
         uint userBalance = IERC20(market).balanceOf(user);
@@ -322,7 +337,7 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
         // update supplier index
         supplierIndex[market][user] = supplyIndex[market];
         if (userState.mantissa == 0 && marketState.mantissa > 0) {
-            userState.mantissa = INITIAL_INDEX;
+            userState.mantissa = doubleScale;
         }
         Double memory deltaIndex = sub_(marketState, userState);
         uint userBalance = IERC20(market).balanceOf(user);
@@ -339,7 +354,7 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
         Double memory userState = Double(borrowerIndex[user]);
         borrowerIndex[user] = borrowIndex;
         if (userState.mantissa == 0 && globalState.mantissa > 0) {
-            userState.mantissa = INITIAL_INDEX;
+            userState.mantissa = doubleScale;
         }
         Double memory deltaIndex = sub_(globalState, userState);
         Exp memory borrowPoolIndex = Exp(borrowPool.borrowIndex());
@@ -392,7 +407,15 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
 
     /* admin function */
 
-    function registerMarket(address market) public onlyOwner {
+    function setCFToken(CycleStableCoin cfsc, address cfgt) public onlyOwner {
+        CycleStableCoin oldSC = CFSC;
+        address oldGT = CFGT;
+        CFSC = cfsc;
+        CFGT = cfgt;
+        emit NewCFToken(oldSC, cfsc, oldGT, cfgt);
+    }
+
+    function registerMarket(address market, uint _collateralFactor) public onlyOwner {
         bool existed = false;
         for (uint i = 0; i < markets.length; i++) {
             if (markets[i] == market) {
@@ -407,11 +430,88 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
         require(dToken.userDepositValue(address(this)) == 0);
         require(dToken.depositValue() == 0);
         markets.push(market);
+        require(_collateralFactor < expScale, "illegal collateral factor");
+        collateralFactor[market] = _collateralFactor;
         refreshMarketDeposit();
+        emit RegisterMarket(market);
     }
 
     function reduceServes() public onlyOwner {
         refreshMarketDeposit();
         borrowPool.reduceReserves(owner());
+    }
+
+    function setOracle(Oracle _oracle) public onlyOwner {
+        Oracle oldOracle = oracle;
+        oracle = _oracle;
+        emit NewOracle(oldOracle, _oracle);
+    }
+
+    function setPublicBorrower(address newBorrower) public onlyOwner {
+        address oldBorrower = publicBorrower;
+        uint publicBorrows = borrowPool.getBorrows(oldBorrower);
+        require(publicBorrows == 0, "old public borrower is indebted");
+        publicBorrower = newBorrower;
+        emit NewPublicBorrower(oldBorrower, newBorrower);
+    }
+
+    function setBorrowPool(BorrowsInterface newBorrowPool) public onlyOwner {
+        BorrowsInterface oldPool = borrowPool;
+        if (address(oldPool) != address(0)) {
+            require(oldPool.totalBorrows() == 0, "system has borrows");
+        }
+        borrowPool = newBorrowPool;
+        emit NewBorrowPool(oldPool, newBorrowPool);
+    }
+
+    function setSupplySpeed(uint newSpeed) public onlyOwner {
+        uint oldSpeed = supplySpeed;
+        refreshMarketDeposit();
+        supplySpeed = newSpeed;
+        emit NewSupplySpeed(oldSpeed, newSpeed);
+    }
+
+    function setBorrowSpeed(uint newSpeed) public onlyOwner {
+        uint oldSpeed = borrowSpeed;
+        updateBorrowIndex();
+        borrowSpeed = newSpeed;
+        emit NewBorrowSpeed(oldSpeed, newSpeed);
+    }
+
+    function setCollateralFactor(address dToken, uint factor) public onlyOwner {
+        uint oldFactor = collateralFactor;
+        require(factor < expScale, "illegal factor");
+        bool exited = false;
+        for (uint i = 0; i < markets.length; i++) {
+            if (markets[i] == dToken) {
+                exited = true;
+                break;
+            }
+        }
+        require(exited, "dToken is not existed");
+        collateralFactor[dToken] = factor;
+        emit NewCollateralFactor(dToken, oldFactor, factor);
+    }
+
+    /// @notice don't limit the minimum UR
+    function setSystemUtilizationRate(uint rate) public onlyOwner {
+        uint oldRate = systemUtilizationRate;
+        require(rate < expScale, "illegal utilization rate");
+        systemUtilizationRate = rate;
+        emit NewUtilizationRate(oldRate, rate);
+    }
+
+    function setMaxCloseFactor(uint factor) public onlyOwner {
+        uint oldFactor = maxCloseFactor;
+        require(factor < expScale, "illegal factor");
+        maxCloseFactor = factor;
+        emit NewMaxCloseFactor(oldFactor, factor);
+    }
+
+    function setLiquidationIncentive(uint incentive) public onlyOwner {
+        uint oldIncentive = liquidationIncentive;
+        require(incentive > expScale, "illegal incentive");
+        liquidationIncentive = incentive;
+        emit NewLiquidationIncentive(oldIncentive, incentive);
     }
 }

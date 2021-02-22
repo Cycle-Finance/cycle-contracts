@@ -21,8 +21,6 @@ contract ComptrollerStorage {
 
     BorrowsInterface public borrowPool;
 
-    uint constant public INITIAL_INDEX = 1e36;
-
     /// @dev market deposit
     /// @notice each block refresh market deposit only once
     uint public refreshedBlock;
@@ -59,9 +57,9 @@ contract ComptrollerStorage {
     // asset collateral factor, is exponential
     mapping(address => uint) collateralFactor;
     /// @notice totalDeposit * systemCollateralFactor >= totalBorrows
-    uint public systemCollateralFactor;
+    uint public systemUtilizationRate;
     /// @notice multiplier used to calculate the maximum repayAmount when liquidating a borrow
-    uint public closeFactor;
+    uint public maxCloseFactor;
     /// @notice multiplier representing the discount on collateral that a liquidator receives
     uint public liquidationIncentive;
 }

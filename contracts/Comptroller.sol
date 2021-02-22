@@ -2,11 +2,11 @@
 pragma solidity ^0.7.0;
 pragma abicoder v2;
 
-import "./ComptrollerStorage.sol";
+import "./storage/ComptrollerStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./math/Exponential.sol";
 import "./SafeERC20.sol";
-import "./DTokenInterface.sol";
+import "./interfaces/DTokenInterface.sol";
 
 // TODO: pause guardian
 

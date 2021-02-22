@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.7.0;
 
-import "./Oracle.sol";
-import "./BorrowsInterface.sol";
-import "./CycleStableCoin.sol";
+import "../Oracle.sol";
+import "../interfaces/BorrowsInterface.sol";
+import "../CycleStableCoin.sol";
 
 contract ComptrollerStorage {
 

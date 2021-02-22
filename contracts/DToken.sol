@@ -2,7 +2,8 @@
 pragma solidity ^0.7.0;
 pragma abicoder v2;
 
-import "./DTokenInterface.sol";
+import "./interfaces/DTokenInterface.sol";
+import "./storage/DTokenStorage.sol";
 import "./math/Exponential.sol";
 
 abstract contract DToken is DTokenStorage, Exponential {

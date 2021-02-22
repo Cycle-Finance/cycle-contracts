@@ -98,6 +98,13 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
         refreshMarketDeposit();
         distributeInterest(dToken, redeemer);
         distributeSupplierCFGT(dToken, redeemer);
+        (MathError errS, , uint systemShortfall) = getHypotheticalSystemLiquidity(dToken, redeemTokens, 0);
+        if (errS != MathError.NO_ERROR) {
+            return "calculate system liquidity failed";
+        }
+        if (systemShortfall > 0) {
+            return "insufficient system liquidity";
+        }
         (MathError err, , uint shortfall) = getHypotheticalAccountLiquidity(redeemer, dToken, redeemTokens, 0);
         if (err != MathError.NO_ERROR) {
             return "calculate account liquidity failed";
@@ -116,12 +123,21 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
         refreshMarketDeposit();
         updateBorrowIndex();
         distributeBorrowerCFGT(user);
-        (MathError err, , uint shortfall) = getHypotheticalAccountLiquidity(user, address(0), 0, borrowAmount);
-        if (err != MathError.NO_ERROR) {
-            return "calculate account liquidity failed";
+        (MathError errS, , uint systemShortfall) = getHypotheticalSystemLiquidity(address(0), 0, borrowAmount);
+        if (errS != MathError.NO_ERROR) {
+            return "calculate system liquidity failed";
         }
-        if (shortfall > 0) {
-            return "insufficient liquidity";
+        if (systemShortfall > 0) {
+            return "insufficient system liquidity";
+        }
+        if (user != publicBorrower) {
+            (MathError err, , uint shortfall) = getHypotheticalAccountLiquidity(user, address(0), 0, borrowAmount);
+            if (err != MathError.NO_ERROR) {
+                return "calculate account liquidity failed";
+            }
+            if (shortfall > 0) {
+                return "insufficient liquidity";
+            }
         }
         return "";
     }
@@ -144,6 +160,9 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
     function liquidateBorrowAllowed(address dToken, address liquidator, address borrower, uint repayAmount)
     public returns (string memory){
         refreshMarketDeposit();
+        if (borrower == publicBorrower) {
+            return "disable liquidate public borrower";
+        }
         (uint err, , uint shortfall) = getAccountLiquidity(borrower);
         if (err != 0) {
             return "calculate account liquidity failed";
@@ -229,6 +248,36 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
     }
 
     /// @return (errCode, liquidity, shortfall), the value is exponential
+    function getSystemLiquidity() public view returns (uint, uint, uint){
+        (MathError err, uint liquidity, uint shortfall) = getHypotheticalSystemLiquidity(address(0), 0, 0);
+        return (uint(err), liquidity, shortfall);
+    }
+
+    function getHypotheticalSystemLiquidity(address dToken, uint redeemTokens, uint borrowAmount)
+    internal returns (MathError, uint, uint){
+        Exp memory systemFactor = Exp(systemUtilizationRate);
+        Exp memory deposit = Exp(totalDeposit);
+        (MathError err, Exp memory borrowLimit) = mulExp(systemFactor, deposit);
+        if (err != MathError.NO_ERROR) {
+            return (err, 0, 0);
+        }
+        uint totalBorrows = borrowPool.totalBorrows();
+        Exp memory hypotheticalBorrows = Exp((totalBorrows + borrowAmount) * expScale);
+        Exp memory hypotheticalRedeemValue = Exp(dToken == address(0) ?
+            0 : DTokenInterface(dToken).tokenValue(redeemTokens));
+        (MathError err1,Exp memory borrowEffects) = addExp(hypotheticalBorrows, hypotheticalRedeemValue);
+        if (err1 != MathError.NO_ERROR) {
+            return (err, 0, 0);
+        }
+        if (lessThanExp(borrowEffects, borrowLimit)) {
+            return (MathError.No_ERROR, borrowLimit.mantissa - borrowEffects.mantissa, 0);
+        } else {
+            return (MathError.No_ERROR, 0, borrowEffects.mantissa - borrowLimit.mantissa);
+        }
+    }
+
+    /// @return (errCode, liquidity, shortfall), the value is exponential
+    /// @notice if account is publicBorrower, the shortfall is always no less than 0
     function getAccountLiquidity(address account) public view returns (uint, uint, uint){
         (MathError err, uint liquidity, uint shortfall) = getHypotheticalAccountLiquidity(account, address(0), 0, 0);
         return (uint(err), liquidity, shortfall);
@@ -236,9 +285,6 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
 
     function getHypotheticalAccountLiquidity(address account, address dToken, uint redeemTokens, uint borrowAmount)
     internal view returns (MathError, uint, uint){
-        if (account == publicBorrower) {
-            return getHypotheticalPublicBorrowerLiquidity(borrowAmount);
-        }
         (uint mErr, uint accountBorrowLimit) = getAccountBorrowLimit(account);
         if (mErr != 0) {
             return (MathError(mErr), 0, 0);
@@ -250,30 +296,6 @@ contract Comptroller is ComptrollerStorage, Ownable, Exponential {
             return (MathError.NO_ERROR, sub_(borrowLimit, hypotheticalBorrows).mantissa, 0);
         } else {
             return (MathError.NO_ERROR, 0, sub_(hypotheticalBorrows, borrowLimit).mantissa);
-        }
-    }
-
-    function getHypotheticalPublicBorrowerLiquidity(uint borrowAmount)
-    internal view returns (MathError, uint, uint){
-        Exp memory systemFactor = Exp(systemUtilizationRate);
-        Exp memory deposit = Exp(totalDeposit);
-        (MathError err, Exp memory borrowLimit) = mulExp(systemFactor, deposit);
-        if (err != MathError.NO_ERROR) {
-            return (err, 0, 0);
-        }
-        uint totalBorrows = borrowPool.totalBorrows();
-        uint publicBorrows = borrowPool.getBorrows(publicBorrower);
-        Exp memory userBorrows = Exp((totalBorrows - publicBorrows) * expScale);
-        Exp memory hypotheticalPublicBorrows = Exp((publicBorrows + borrowAmount) * expScale);
-        if (lessThanExp(userBorrows, borrowLimit)) {
-            Exp memory gap = sub_(borrowLimit, userBorrows);
-            if (lessThanExp(hypotheticalPublicBorrows, gap)) {
-                return (MathError.NO_ERROR, sub_(gap, hypotheticalPublicBorrows).mantissa, 0);
-            } else {
-                return (MathError.NO_ERROR, 0, sub_(hypotheticalPublicBorrows, gap).mantissa);
-            }
-        } else {
-            return (MathError.NO_ERROR, 0, hypotheticalPublicBorrows.mantissa);
         }
     }
 

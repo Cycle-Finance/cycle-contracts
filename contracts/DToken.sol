@@ -48,6 +48,9 @@ abstract contract DToken is DTokenStorage, Exponential {
     }
 
     function redeemInternal(uint redeemAmount) internal nonReentrant returns (string memory){
+        if (redeemAmount == uint(- 1)) {
+            redeemAmount = balanceOf(msg.sender);
+        }
         string memory errMsg = comptroller.redeemAllowed(address(this), msg.sender, redeemAmount);
         if (bytes(errMsg).length != 0) {
             return fail(errMsg);
@@ -59,6 +62,7 @@ abstract contract DToken is DTokenStorage, Exponential {
         return "";
     }
 
+    // msg.sender should be borrow pool
     function seize(address liquidator, address borrower, uint amount) public nonReentrant returns (string memory) {
         string memory errMsg = comptroller.seizeAllowed(address(this), msg.sender, liquidator, borrower, amount);
         if (bytes(errMsg).length != 0) {

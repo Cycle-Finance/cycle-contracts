@@ -24,6 +24,7 @@ contract ComptrollerStorage is Ownable {
 
     /// @dev market deposit
     /// @notice each block refresh market deposit only once
+    /// @notice duplicate with borrowPool.accrualBlock
     uint public refreshedBlock;
     /// @notice deposit is represented by USD, and the value is exponential
     uint public totalDeposit;
@@ -33,14 +34,11 @@ contract ComptrollerStorage is Ownable {
 
     /// @dev interest distribution index
     // dTokenAddress => index
-    // TODO: initialize this value as doubleScale while register market
     mapping(address => uint) public marketInterestIndex;
     // dTokenAddress => userAddress => index
     mapping(address => mapping(address => uint)) public userInterestIndex;
 
     /// @dev used to distribute CFGT
-    // distribute CFGT to supplier
-    uint public supplyDistributedBlock;
     mapping(address => uint) public supplyIndex;
     // market => user => index
     mapping(address => mapping(address => uint)) public supplierIndex;

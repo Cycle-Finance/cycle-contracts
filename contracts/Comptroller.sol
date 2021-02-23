@@ -18,7 +18,6 @@ contract Comptroller is ComptrollerStorage, Exponential {
 
     event RegisterMarket(address dToken);
     event ReduceReserves(address indexed owner, uint amount);
-    event NewCFToken(CycleStableCoin oldCFSC, CycleStableCoin newCFSC, address oldCFGT, address newCFGT);
     //    event NewOracle(IOracle oldOracle, IOracle newOracle);
     event NewPublicBorrower(address oldPublicBorrower, address newPublicBorrower);
     event NewBorrowPool(BorrowsInterface oldBorrowPool, BorrowsInterface newBorrowPool);
@@ -418,12 +417,12 @@ contract Comptroller is ComptrollerStorage, Exponential {
 
     /* admin function */
 
-    function setCFToken(CycleStableCoin cfsc, address cfgt) public onlyOwner {
-        CycleStableCoin oldSC = CFSC;
-        address oldGT = CFGT;
+    function initialize(CycleStableCoin cfsc, address cfgt, BorrowsInterface _borrowPool) public onlyOwner {
+        require(borrowIndex == 0, "could be initialized only once");
         CFSC = cfsc;
         CFGT = cfgt;
-        emit NewCFToken(oldSC, cfsc, oldGT, cfgt);
+        borrowPool = _borrowPool;
+        borrowIndex = doubleScale;
     }
 
     function registerMarket(address market, uint _collateralFactor) public onlyOwner {
@@ -443,6 +442,8 @@ contract Comptroller is ComptrollerStorage, Exponential {
         markets.push(market);
         require(_collateralFactor < expScale, "illegal collateral factor");
         collateralFactor[market] = _collateralFactor;
+        supplyIndex[market] = doubleScale;
+        marketInterestIndex[market] = doubleScale;
         refreshMarketDeposit();
         emit RegisterMarket(market);
     }
@@ -451,12 +452,6 @@ contract Comptroller is ComptrollerStorage, Exponential {
         refreshMarketDeposit();
         borrowPool.reduceReserves(owner());
     }
-
-    //    function setOracle(IOracle _oracle) public onlyOwner {
-    //        IOracle oldOracle = oracle;
-    //        oracle = _oracle;
-    //        emit NewOracle(oldOracle, _oracle);
-    //    }
 
     function setPublicBorrower(address newBorrower) public onlyOwner {
         address oldBorrower = publicBorrower;

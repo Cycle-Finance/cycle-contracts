@@ -19,13 +19,7 @@ contract BorrowsStorage is Ownable {
     /// @notice other supported stable Coin
     mapping(address => bool) public supportedSC;
 
-    /// @notice DAF profit
-    uint public reserves;
-
     uint public reserveFactor;
-
-    /// @notice latest utilization rate
-    uint public utilizationRate;
 
     uint public borrowIndex; // global borrow index
     uint public accrualBlock; // the height of last accrued interest
@@ -35,6 +29,9 @@ contract BorrowsStorage is Ownable {
         uint index;
         uint borrows;
     }
+
+    mapping(address => AccountBorrowSnapshot) accountBorrows;
+
     /**
      * @dev Guard variable for re-entrancy checks
      */
@@ -57,9 +54,5 @@ contract BorrowsStorage is Ownable {
         _;
     }
 
-    mapping(address => AccountBorrowSnapshot) accountBorrows;
-
-    constructor()Ownable(){
-        accrualBlock = block.number;
-    }
+    constructor()Ownable(){}
 }

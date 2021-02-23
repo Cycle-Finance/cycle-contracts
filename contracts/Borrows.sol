@@ -12,11 +12,13 @@ contract Borrows is BorrowsStorage, Exponential, ErrorReporter {
     using SafeERC20 for address;
 
     /* event */
-    event AccrueInterest(uint totalDeposit, uint interestAccumulated, uint borrowIndex, uint totalBorrows);
+    event AccrueInterest(uint totalDeposit, uint supplyInterest, uint reserves, uint borrowIndex, uint totalBorrows);
     event Borrow(address borrower, uint amount, uint accountBorrowsNew, uint totalBorrowsNew);
     event RepayBorrow(address payer, address borrower, uint repayAmount, uint accountBorrows, uint totalBorrows);
     event LiquidateBorrow(address liquidator, address borrower, uint repayAmount, address dToken, uint seizeTokens);
 
+    event UpdateSupportedSC(address sc, bool valid);
+    event NewReserveFactor(uint oldFactor, uint newFactor);
 
     // return (errorInfo, interestAccumulated)
     function accrueInterest() public onlyComptroller returns (string memory, uint){
@@ -56,17 +58,17 @@ contract Borrows is BorrowsStorage, Exponential, ErrorReporter {
         }
 
         /* transfer interest*/
-        CFSC.mint(address(this), interestAccumulated);
-        CFSC.transfer(address(comptroller), sub_(interestAccumulated, reservesCurrent));
+        uint supplyInterest = sub_(interestAccumulated, reservesCurrent);
+        CFSC.mint(address(this), reservesCurrent);
+        CFSC.mint(address(comptroller), supplyInterest);
 
         /* We write the previously calculated values into storage */
         accrualBlock = block.number;
         borrowIndex = borrowIndexNew;
         totalBorrows = totalBorrowsNew;
-        reserves += reservesCurrent;
 
         /* We emit an AccrueInterest event */
-        emit AccrueInterest(totalDeposit, interestAccumulated, borrowIndexNew, totalBorrowsNew);
+        emit AccrueInterest(totalDeposit, supplyInterest, reservesCurrent, borrowIndexNew, totalBorrowsNew);
 
         return ("", interestAccumulated);
     }
@@ -111,7 +113,7 @@ contract Borrows is BorrowsStorage, Exponential, ErrorReporter {
             // TODO: parse other SC value to CFSC value
             require(scAddr.safeTransfer(exchangePool, amount), "transfer asset to exchange pool failed");
         }
-        string memory errInfo = comptroller.repayBorrowAllowed(payer,borrower, amount);
+        string memory errInfo = comptroller.repayBorrowAllowed(payer, borrower, amount);
         if (bytes(errInfo).length == 0) {
             return (fail(errInfo), 0);
         }
@@ -131,7 +133,7 @@ contract Borrows is BorrowsStorage, Exponential, ErrorReporter {
         return ("", amount);
     }
 
-    function liquidationBorrow(address scAddr, address dToken, address borrower, uint amount)
+    function liquidateBorrow(address scAddr, address dToken, address borrower, uint amount)
     public nonReentrant returns (string memory){
         string memory errInfo = comptroller.liquidateBorrowAllowed(address(this), msg.sender, borrower, amount);
         if (bytes(errInfo).length == 0) {
@@ -177,5 +179,36 @@ contract Borrows is BorrowsStorage, Exponential, ErrorReporter {
         return borrows;
     }
 
-    // TODO: other interface
+    function reduceReserves(address recipient) public onlyComptroller returns (uint){
+        uint reserves = CFSC.balanceOf(address(this));
+        require(CFSC.transfer(recipient, reserves), "reduce reserve failed");
+        return reserves;
+    }
+
+    /* admin function */
+
+    function initialize(CycleStableCoin cfsc, InterestRateModel _interestRateModel, ComptrollerInterface _comptroller,
+        address exchangePool, uint _reserveFactor) public onlyOwner {
+        require(accrualBlock == 0 && borrowIndex == 0, "could only be initialized once");
+        CFSC = cfsc;
+        interestRateModel = _interestRateModel;
+        comptroller = _comptroller;
+        exchangePool = exchangePool;
+        borrowIndex = mantissaOne;
+        require(reserveFactor < mantissaOne, "illegal reserve factor");
+        reserveFactor = _reserveFactor;
+        _notEntered = true;
+    }
+
+    function setSupportedSC(address sc, bool valid) public onlyOwner {
+        supportedSC[sc] = valid;
+        emit UpdateSupportedSC(sc, valid);
+    }
+
+    function setReserveFactor(uint factor) public onlyOwner {
+        uint oldFactor = reserveFactor;
+        require(factor < mantissaOne, "illegal reserve factor");
+        reserveFactor = factor;
+        emit NewReserveFactor(oldFactor, factor);
+    }
 }

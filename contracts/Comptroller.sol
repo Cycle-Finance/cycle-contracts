@@ -77,6 +77,8 @@ contract Comptroller is ComptrollerStorage, Exponential {
 
     // @return 0 means that no error
     function mintAllowed(address dToken, address minter, uint amount) public returns (string memory){
+        /* shield compiler warning -- unused variable */
+        amount;
         refreshMarketDeposit();
         distributeInterest(dToken, minter);
         distributeSupplierCFGT(dToken, minter);
@@ -84,7 +86,7 @@ contract Comptroller is ComptrollerStorage, Exponential {
     }
 
     // @return 0 means that no error
-    function mintVerified(address dToken, address minter, uint amount) public {
+    function mintVerified(address, address, uint) public {
     }
 
     function redeemAllowed(address dToken, address redeemer, uint redeemTokens)
@@ -109,7 +111,7 @@ contract Comptroller is ComptrollerStorage, Exponential {
         return "";
     }
 
-    function redeemVerify(address dToken, address minter, uint amount) public {
+    function redeemVerify(address, address, uint) public {
     }
 
     function borrowAllowed(address user, uint borrowAmount) public returns (string memory){
@@ -135,21 +137,28 @@ contract Comptroller is ComptrollerStorage, Exponential {
         return "";
     }
 
-    function borrowVerify(address user, uint borrowAmount) public {
+    function borrowVerify(address, uint) public {
     }
 
     function repayBorrowAllowed(address payer, address borrower, uint repayAmount) public returns (string memory){
+        /* shield compiler warning -- unused variable */
+        payer;
+        repayAmount;
+
         refreshMarketDeposit();
         updateBorrowIndex();
         distributeBorrowerCFGT(borrower);
         return "";
     }
 
-    function repayBorrowVerify(address payer, address user, uint repayAmount) public {
+    function repayBorrowVerify(address, address, uint) public {
     }
 
     function liquidateBorrowAllowed(address dToken, address liquidator, address borrower, uint repayAmount)
     public returns (string memory){
+        /* shield compiler warning -- unused variable */
+        dToken;
+
         refreshMarketDeposit();
         if (borrower == publicBorrower) {
             return "disable liquidate public borrower";
@@ -172,12 +181,14 @@ contract Comptroller is ComptrollerStorage, Exponential {
         return "";
     }
 
-    function liquidateBorrowVerify(address dToken, address liquidator, address borrower, uint repayAmount,
-        uint seizedTokens) public {
+    function liquidateBorrowVerify(address, address, address, uint, uint) public {
     }
 
     function seizeAllowed(address dToken, address _borrowPool, address liquidator, address borrower, uint seizedTokens)
     public returns (string memory){
+        /* shield compiler warning -- unused variable */
+        seizedTokens;
+
         // check dToken is registered
         bool existed = false;
         for (uint i = 0; i < markets.length; i++) {
@@ -199,8 +210,7 @@ contract Comptroller is ComptrollerStorage, Exponential {
         return "";
     }
 
-    function seizeVerify(address dToken, address liquidator, address borrower, uint seizedTokens)
-    public {
+    function seizeVerify(address, address, address, uint) public {
     }
 
     function transferAllowed(address dToken, address from, address to, uint amount)
@@ -220,8 +230,7 @@ contract Comptroller is ComptrollerStorage, Exponential {
         return "";
     }
 
-    function transferVerify(address dToken, address from, address to, uint amount)
-    public {
+    function transferVerify(address, address, address, uint) public {
     }
 
     function liquidateCalculateSeizeTokens(address dToken, uint repayAmount)

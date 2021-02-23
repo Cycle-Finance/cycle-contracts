@@ -27,7 +27,7 @@ contract CycleToken is ERC20, Ownable {
         _approve(address(this), approver, amount);
     }
 
-    function totalCirculation() public returns (uint){
+    function totalCirculation() public view returns (uint){
         return MAX_TOTAL_SUPPLY - balanceOf(address(this));
     }
 }

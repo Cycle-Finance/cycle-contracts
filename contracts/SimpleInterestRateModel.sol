@@ -30,7 +30,7 @@ contract SimpleInterestRateModel is InterestRateModel, ExponentialNoError, Ownab
      * @param baseRatePerYear The approximate target base APR, as a mantissa (scaled by 1e18)
      * @param multiplierPerYear The rate of increase in interest rate wrt utilization (scaled by 1e18)
      */
-    constructor(uint baseRatePerYear, uint multiplierPerYear) public {
+    constructor(uint baseRatePerYear, uint multiplierPerYear)Ownable() public {
         updateParam(baseRatePerYear, multiplierPerYear);
     }
 
@@ -88,7 +88,7 @@ contract SimpleInterestRateModel is InterestRateModel, ExponentialNoError, Ownab
         return mul_(ur, rateToPool).mantissa;
     }
 
-    function isInterestRateModel() public override view returns (bool){
+    function isInterestRateModel() public override pure returns (bool){
         return true;
     }
 }

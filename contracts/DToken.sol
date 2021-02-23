@@ -15,14 +15,13 @@ abstract contract DToken is DTokenStorage, Exponential {
     event Redeem(address redeemer, uint amount);
     event Seize(address liquidator, address borrower, uint amount);
 
-    constructor(string memory name, string memory symbol, address _underlyingAsset)DTokenStorage(name, symbol) {
-        // check underlying is erc20
-        if (_underlyingAsset != address(0)) {
-            require(IERC20(_underlyingAsset).balanceOf(address(this)) >= 0, "illegal erc20 underlying asset");
-        }
-        underlyingAsset = _underlyingAsset;
-        _notEntered = true;
-    }
+    constructor(string memory name, string memory symbol, address _underlyingAsset)
+    DTokenStorage(name, symbol, _underlyingAsset) {}
+
+
+    function transferIn(address from, uint amount) internal virtual returns (uint);
+
+    function transferOut(address payable to, uint amount) internal virtual;
 
     function transfer(address recipient, uint256 amount) public override returns (bool) {
         string memory errMsg = comptroller.transferAllowed(address(this), msg.sender, recipient, amount);

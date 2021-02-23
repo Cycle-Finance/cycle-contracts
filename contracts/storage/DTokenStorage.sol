@@ -38,9 +38,12 @@ abstract contract DTokenStorage is ERC20, Ownable, ErrorReporter {
         _notEntered = true;
     }
 
-    constructor(string memory name, string memory symbol)ERC20(name, symbol) Ownable(){}
-
-    function transferIn(address from, uint amount) internal virtual returns (uint);
-
-    function transferOut(address payable to, uint amount) internal virtual;
+    constructor(string memory name, string memory symbol, address _underlyingAsset)ERC20(name, symbol) Ownable(){
+        // check underlying is erc20
+        if (_underlyingAsset != address(0)) {
+            require(IERC20(_underlyingAsset).balanceOf(address(this)) >= 0, "illegal erc20 underlying asset");
+        }
+        underlyingAsset = _underlyingAsset;
+        _notEntered = true;
+    }
 }

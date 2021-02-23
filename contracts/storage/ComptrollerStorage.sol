@@ -62,7 +62,5 @@ contract ComptrollerStorage is Ownable {
     /// @notice multiplier representing the discount on collateral that a liquidator receives
     uint public liquidationIncentive;
 
-    constructor()Ownable(){
-        refreshedBlock = block.number;
-    }
+    constructor()Ownable(){}
 }

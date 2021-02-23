@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.7.0;
-pragma abicoder v2;
+//pragma abicoder v2;
 
 import "./storage/ComptrollerStorage.sol";
 import "./math/Exponential.sol";
@@ -432,6 +432,7 @@ contract Comptroller is ComptrollerStorage, Exponential {
         CFGT = cfgt;
         borrowPool = _borrowPool;
         borrowIndex = doubleScale;
+        refreshedBlock = block.number;
     }
 
     function registerMarket(address market, uint _collateralFactor) public onlyOwner {

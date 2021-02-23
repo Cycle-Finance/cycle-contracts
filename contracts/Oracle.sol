@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.7.0;
-pragma abicoder v2;
 
 import "@chainlink/contracts/src/v0.7/interfaces/AggregatorV3Interface.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";

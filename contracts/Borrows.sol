@@ -17,6 +17,8 @@ contract Borrows is BorrowsStorage, Exponential, ErrorReporter {
     event RepayBorrow(address payer, address borrower, uint repayAmount, uint accountBorrows, uint totalBorrows);
     event LiquidateBorrow(address liquidator, address borrower, uint repayAmount, address dToken, uint seizeTokens);
 
+    event NewOracle(IOracle oldOracle, IOracle newOracle);
+    event NewComptroller(ComptrollerInterface oldComptroller, ComptrollerInterface newComptroller);
     event UpdateSupportedSC(address sc, bool valid);
     event NewReserveFactor(uint oldFactor, uint newFactor);
 
@@ -103,16 +105,10 @@ contract Borrows is BorrowsStorage, Exponential, ErrorReporter {
         return err;
     }
 
+    // param `amount` represent the number of `scAddr` asset
+    // if amount == -1, the borrower will repay whole borrows
     function repayBorrowInternal(address scAddr, address payer, address borrower, uint amount)
     internal nonReentrant returns (string memory, uint actualRepayAmount){
-        // revert while asset transfer failed
-        require(scAddr.safeTransferFrom(payer, address(this), amount), "transferFrom asset failed");
-        if (scAddr == address(CFSC)) {
-            CFSC.burn(amount);
-        } else {
-            // TODO: parse other SC value to CFSC value
-            require(scAddr.safeTransfer(exchangePool, amount), "transfer asset to exchange pool failed");
-        }
         string memory errInfo = comptroller.repayBorrowAllowed(payer, borrower, amount);
         if (bytes(errInfo).length == 0) {
             return (fail(errInfo), 0);
@@ -123,6 +119,17 @@ contract Borrows is BorrowsStorage, Exponential, ErrorReporter {
         uint userBorrows = getBorrows(borrower);
         if (amount == uint(- 1)) {
             amount = userBorrows;
+        }
+        // revert while asset transfer failed
+        require(scAddr.safeTransferFrom(payer, address(this), amount), "transferFrom asset failed");
+        if (scAddr == address(CFSC)) {
+            CFSC.burn(amount);
+        } else {
+            Exp memory price = Exp(oracle.getPrice(scAddr));
+            MathError err;
+            (err, amount) = mulScalarTruncate(price, amount);
+            require(err == MathError.NO_ERROR, "parse other sc value failed");
+            require(scAddr.safeTransfer(exchangePool, amount), "transfer asset to exchange pool failed");
         }
         uint userBorrowsNew = sub_(userBorrows, amount);
         accountBorrows[borrower] = AccountBorrowSnapshot(borrowIndex, userBorrowsNew);
@@ -188,16 +195,30 @@ contract Borrows is BorrowsStorage, Exponential, ErrorReporter {
     /* admin function */
 
     function initialize(CycleStableCoin cfsc, InterestRateModel _interestRateModel, ComptrollerInterface _comptroller,
-        address exchangePool, uint _reserveFactor) public onlyOwner {
+        address exchangePool, IOracle _oracle, uint _reserveFactor) public onlyOwner {
         require(accrualBlock == 0 && borrowIndex == 0, "could only be initialized once");
         CFSC = cfsc;
         interestRateModel = _interestRateModel;
         comptroller = _comptroller;
         exchangePool = exchangePool;
+        oracle = _oracle;
         borrowIndex = mantissaOne;
         require(reserveFactor < mantissaOne, "illegal reserve factor");
         reserveFactor = _reserveFactor;
         _notEntered = true;
+    }
+
+    function setOracle(IOracle _oracle) public onlyOwner {
+        IOracle oldOracle = oracle;
+        oracle = _oracle;
+        emit NewOracle(oldOracle, _oracle);
+    }
+
+    function setComptroller(ComptrollerInterface _comptroller) public onlyOwner {
+        ComptrollerInterface oldComptroller = comptroller;
+        require(comptroller.isComptroller(), "illegal comptroller");
+        comptroller = _comptroller;
+        emit NewComptroller(oldComptroller, _comptroller);
     }
 
     function setSupportedSC(address sc, bool valid) public onlyOwner {

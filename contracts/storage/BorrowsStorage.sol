@@ -5,6 +5,7 @@ import "../CycleStableCoin.sol";
 import "../interfaces/InterestRateModel.sol";
 import "../interfaces/ComptrollerInterface.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "../Oracle.sol";
 
 contract BorrowsStorage is Ownable {
 
@@ -15,6 +16,8 @@ contract BorrowsStorage is Ownable {
     ComptrollerInterface public comptroller;
 
     address public exchangePool;
+
+    IOracle public oracle;
 
     /// @notice other supported stable Coin
     mapping(address => bool) public supportedSC;

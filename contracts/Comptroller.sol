@@ -7,8 +7,6 @@ import "./math/Exponential.sol";
 import "./SafeERC20.sol";
 import "./interfaces/DTokenInterface.sol";
 
-// TODO: pause guardian
-
 contract Comptroller is ComptrollerStorage, Exponential {
 
     /* event */
@@ -77,6 +75,7 @@ contract Comptroller is ComptrollerStorage, Exponential {
 
     // @return 0 means that no error
     function mintAllowed(address dToken, address minter, uint amount) public returns (string memory){
+        require(!mintPaused[dToken], "mint is paused");
         /* shield compiler warning -- unused variable */
         amount;
         refreshMarketDeposit();
@@ -115,6 +114,7 @@ contract Comptroller is ComptrollerStorage, Exponential {
     }
 
     function borrowAllowed(address user, uint borrowAmount) public returns (string memory){
+        require(!borrowPaused, "borrow is paused");
         refreshMarketDeposit();
         updateBorrowIndex();
         distributeBorrowerCFGT(user);
@@ -186,6 +186,7 @@ contract Comptroller is ComptrollerStorage, Exponential {
 
     function seizeAllowed(address dToken, address _borrowPool, address liquidator, address borrower, uint seizedTokens)
     public returns (string memory){
+        require(!seizePaused, "seize is paused");
         /* shield compiler warning -- unused variable */
         seizedTokens;
 
@@ -215,6 +216,7 @@ contract Comptroller is ComptrollerStorage, Exponential {
 
     function transferAllowed(address dToken, address from, address to, uint amount)
     public returns (string memory){
+        require(!transferPaused, "transfer is paused");
         refreshMarketDeposit();
         distributeInterest(dToken, from);
         distributeInterest(dToken, to);

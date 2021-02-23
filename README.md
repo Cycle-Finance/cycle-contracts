@@ -6,4 +6,3 @@ solidity implementation of cycle finance protocol
 
 - truffle migration file
 - test case
-- comptroller pause guardian

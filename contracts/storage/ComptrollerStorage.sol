@@ -62,5 +62,13 @@ contract ComptrollerStorage is Ownable {
     /// @notice multiplier representing the discount on collateral that a liquidator receives
     uint public liquidationIncentive;
 
+    /* pause guardian */
+    /// @notice redeem/repayBorrow cannot paused
+    /// @notice liquidate/seize/transfer/borrow can only be paused globally
+    mapping(address => bool) public mintPaused;
+    bool public borrowPaused;
+    bool public transferPaused;
+    bool public seizePaused;
+
     constructor()Ownable(){}
 }

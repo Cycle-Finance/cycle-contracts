@@ -199,6 +199,7 @@ contract Borrows is BorrowsStorage, Exponential, ErrorReporter {
         require(accrualBlock == 0 && borrowIndex == 0, "could only be initialized once");
         CFSC = cfsc;
         interestRateModel = _interestRateModel;
+        require(comptroller.isComptroller(), "illegal comptroller");
         comptroller = _comptroller;
         exchangePool = exchangePool;
         oracle = _oracle;

@@ -98,6 +98,11 @@ abstract contract DToken is DTokenStorage, Exponential {
 
     /* admin function */
 
+    function initialize(IOracle _oracle, ComptrollerInterface _comptroller) public onlyOwner {
+        setOracle(_oracle);
+        setComptroller(_comptroller);
+    }
+
     function setOracle(IOracle _oracle) public onlyOwner {
         IOracle oldOracle = oracle;
         oracle = _oracle;

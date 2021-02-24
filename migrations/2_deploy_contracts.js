@@ -1,3 +1,5 @@
+const BN = require('bn.js');
+const web3 = require('web3');
 const Comptroller = artifacts.require("Comptroller");
 const Borrows = artifacts.require("Borrows");
 const DERC20 = artifacts.require("DERC20");
@@ -12,32 +14,32 @@ const CycleStableCoin = artifacts.require("CycleStableCoin");
 const CycleGovToken = artifacts.require("CycleToken");
 
 /* test only, will be replaced at maninnet*/
-const Oracle = artifacts.require("TestOracle");
+const TestOracle = artifacts.require("TestOracle");
 const USDC = artifacts.require("TestUSDC");
 const USDT = artifacts.require("TestUSDT");
 const WBTC = artifacts.require("TestWBTC");
 
 module.exports = async function (depolyer) {
     /* deploy suit contract */
-    depolyer.deploy(SimpleInterestRateModel, 3 * (10 ** 16), 5 * (10 ** 17));
-    depolyer.deploy(ExchangePool);
-    depolyer.deploy(CycleStableCoin);
-    depolyer.deploy(CycleGovToken);
+    await depolyer.deploy(SimpleInterestRateModel, web3.utils.toWei('0.03'), web3.utils.toWei('0.5'));
+    await depolyer.deploy(ExchangePool);
+    await depolyer.deploy(CycleStableCoin);
+    await depolyer.deploy(CycleGovToken);
     /* deploy test contract */
-    depolyer.deploy(Oracle);
-    depolyer.deploy(USDC);
-    depolyer.deploy(USDT);
-    depolyer.deploy(WBTC);
+    await depolyer.deploy(TestOracle);
+    await depolyer.deploy(USDC);
+    await depolyer.deploy(USDT);
+    await depolyer.deploy(WBTC);
     /* deploy logic contract */
-    depolyer.deploy(Comptroller);
-    depolyer.deploy(Borrows);
-    depolyer.deploy(DEther);
-    let zeroAddress = '';
-    depolyer.deploy(DERC20, "Cycle Finance ERC20 Deposit Token", "DERC20", zeroAddress);
+    await depolyer.deploy(Comptroller);
+    await depolyer.deploy(Borrows);
+    await depolyer.deploy(DEther);
+    let zeroAddress = '0x0000000000000000000000000000000000000000';
+    await depolyer.deploy(DERC20, "Cycle Finance ERC20 Deposit Token", "DERC20", zeroAddress);
     /* deploy proxy contract */
     let emptyData = new Buffer('');
-    depolyer.deploy(ComptrollerProxy, Comptroller.address, emptyData);
-    depolyer.deploy(BorrowsProxy, Borrows.address, emptyData);
+    await depolyer.deploy(ComptrollerProxy, Comptroller.address, emptyData);
+    await depolyer.deploy(BorrowsProxy, Borrows.address, emptyData);
     let dEtherProxy = await dTokenProxy.new(
         "Cycle Finance WBTC Deposit Token", "dWBTC", zeroAddress, DEther.address, emptyData);
     let dWBTCProxy = await dTokenProxy.new(
@@ -48,32 +50,31 @@ module.exports = async function (depolyer) {
         "Cycle Finance USDC Deposit Token", "dUSDT", USDT.address, DERC20.address, emptyData);
     /* initialize system*/
     // feed price, for test
-    await Oracle.setPrice(zeroAddress, 1902 * (10 ** 18));
-    await Oracle.setPrice(WBTC.address, 51234 * (10 ** 18));
-    await Oracle.setPrice(USDC.address, 10 ** 18);
-    await Oracle.setPrice(USDT.address, 1012 * (10 ** 15)); // 1.012
+    let oracle = await TestOracle.deployed();
+    await oracle.setPrice(zeroAddress, web3.utils.toWei('1902'));
+    await oracle.setPrice(WBTC.address, web3.utils.toWei('51234'));
+    await oracle.setPrice(USDC.address, web3.utils.toWei('1'));
+    await oracle.setPrice(USDT.address, web3.utils.toWei('1.012')); // 1.012
+    // initialize comptroller
+    let comptroller = await Comptroller.at(ComptrollerProxy.address);
+    await comptroller.initialize(CycleStableCoin.address, CycleGovToken.address, BorrowsProxy.address);
     // initialize borrow pool, 20% reserve
     let borrowPool = await Borrows.at(BorrowsProxy.address);
     await borrowPool.initialize(CycleStableCoin.address, SimpleInterestRateModel.address, ComptrollerProxy.address,
-        ExchangePool.address, Oracle.address, 2 * (10 ** 17));
-    // initialize comptroller
-    let comptroller = await Comptroller.at(ComptrollerProxy.address);
-    comptroller.initialize(CycleStableCoin.address, CycleGovToken.address, BorrowsProxy.address);
+        ExchangePool.address, TestOracle.address, web3.utils.toWei('0.2'));
     // initialize dToken
     let dEther = await DEther.at(dEtherProxy.address);
-    dEther.initialize(Oracle.address, ComptrollerProxy.address);
+    await dEther.initialize(TestOracle.address, ComptrollerProxy.address);
+    console.log(dEtherProxy.address);
     let dWBTC = await DERC20.at(dWBTCProxy.address);
-    dWBTC.initialize(Oracle.address, ComptrollerProxy.address);
+    await dWBTC.initialize(TestOracle.address, ComptrollerProxy.address);
     let dUSDC = await DERC20.at(dUSDCProxy.address);
-    dUSDC.initialize(Oracle.address, ComptrollerProxy.address);
+    await dUSDC.initialize(TestOracle.address, ComptrollerProxy.address);
     let dUSDT = await DERC20.at(dUSDTProxy.address);
-    dUSDT.initialize(Oracle.address, ComptrollerProxy.address);
+    await dUSDT.initialize(TestOracle.address, ComptrollerProxy.address);
     // register market
-    comptroller.registerMarket(dEther.address, 75 * (10 ** 16));
-    comptroller.registerMarket(dWBTC.address, 75 * (10 ** 16));
-    comptroller.registerMarket(dUSDC.address, 75 * (10 ** 16));
-    comptroller.registerMarket(dUSDT.address, 75 * (10 ** 16));
-    // system config, 100 CFGT per block, for test
-    comptroller.setSupplySpeed();
-    comptroller.setBorrowSpeed();
+    // await comptroller.registerMarket(dEther.address, web3.utils.toWei('0.75'));
+    // await comptroller.registerMarket(dWBTC.address, web3.utils.toWei('0.75'));
+    // await comptroller.registerMarket(dUSDC.address, web3.utils.toWei('0.75'));
+    // await comptroller.registerMarket(dUSDT.address, web3.utils.toWei('0.75'));
 }

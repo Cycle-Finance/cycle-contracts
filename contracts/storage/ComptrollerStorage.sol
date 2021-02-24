@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract ComptrollerStorage is Ownable {
 
-    //    IOracle public oracle;
+    bool constant public isComptroller = true;
 
     CycleStableCoin public CFSC;
 

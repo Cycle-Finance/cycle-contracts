@@ -23,7 +23,8 @@ contract Borrows is BorrowsStorage, Exponential, ErrorReporter {
     event NewReserveFactor(uint oldFactor, uint newFactor);
 
     // return (errorInfo, interestAccumulated)
-    function accrueInterest() public onlyComptroller returns (string memory, uint){
+    // TODO: onlyComptroller
+    function accrueInterest() public returns (string memory, uint){
         uint blockDelta = block.number - accrualBlock;
 
         MathError mathErr;
@@ -72,7 +73,7 @@ contract Borrows is BorrowsStorage, Exponential, ErrorReporter {
         /* We emit an AccrueInterest event */
         emit AccrueInterest(totalDeposit, supplyInterest, reservesCurrent, borrowIndexNew, totalBorrowsNew);
 
-        return ("", interestAccumulated);
+        return ("", supplyInterest);
     }
 
     function borrow(uint amount) public nonReentrant returns (string memory){
@@ -199,14 +200,15 @@ contract Borrows is BorrowsStorage, Exponential, ErrorReporter {
         require(accrualBlock == 0 && borrowIndex == 0, "could only be initialized once");
         CFSC = cfsc;
         interestRateModel = _interestRateModel;
-        require(comptroller.isComptroller(), "illegal comptroller");
+        require(_comptroller.isComptroller(), "illegal comptroller");
         comptroller = _comptroller;
         exchangePool = exchangePool;
         oracle = _oracle;
         borrowIndex = mantissaOne;
-        require(reserveFactor < mantissaOne, "illegal reserve factor");
+        require(_reserveFactor < mantissaOne, "illegal reserve factor");
         reserveFactor = _reserveFactor;
         _notEntered = true;
+        accrualBlock = block.number;
     }
 
     function setOracle(IOracle _oracle) public onlyOwner {

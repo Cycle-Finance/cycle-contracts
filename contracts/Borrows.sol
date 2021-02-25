@@ -183,6 +183,9 @@ contract Borrows is BorrowsStorage, Exponential, ErrorReporter {
     function getBorrows(address user) public view returns (uint){
         Exp memory globalIndex = Exp(borrowIndex);
         AccountBorrowSnapshot memory snapshot = accountBorrows[user];
+        if (snapshot.index == 0) {
+            return 0;
+        }
         Exp memory userIndex = Exp(snapshot.index);
         Exp memory deltaIndex = div_(globalIndex, userIndex);
         (MathError err, uint borrows) = mulScalarTruncate(deltaIndex, snapshot.borrows);

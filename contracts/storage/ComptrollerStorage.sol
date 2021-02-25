@@ -54,7 +54,7 @@ contract ComptrollerStorage is Ownable {
 
     /* system configure */
     // asset collateral factor, is exponential
-    mapping(address => uint) collateralFactor;
+    mapping(address => uint) public collateralFactor;
     /// @notice totalDeposit * systemCollateralFactor >= totalBorrows
     uint public systemUtilizationRate = 75 * (10 ** 16);
     /// @notice multiplier used to calculate the maximum repayAmount when liquidating a borrow

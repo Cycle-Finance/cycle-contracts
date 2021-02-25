@@ -3,6 +3,8 @@ pragma solidity ^0.7.0;
 
 interface BorrowsInterface {
 
+    function isBorrowPool() external returns (bool);
+
     function accrueInterest() external returns (string memory, uint);
 
     // return reserves amount

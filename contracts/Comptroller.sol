@@ -432,6 +432,7 @@ contract Comptroller is ComptrollerStorage, Exponential {
         require(borrowIndex == 0, "could be initialized only once");
         CFSC = cfsc;
         CFGT = cfgt;
+        require(_borrowPool.isBorrowPool(), "illegal borrow pool");
         borrowPool = _borrowPool;
         borrowIndex = doubleScale;
         refreshedBlock = block.number;
@@ -478,6 +479,7 @@ contract Comptroller is ComptrollerStorage, Exponential {
         if (address(oldPool) != address(0)) {
             require(oldPool.totalBorrows() == 0, "system has borrows");
         }
+        require(newBorrowPool.isBorrowPool(), "illegal borrow pool");
         borrowPool = newBorrowPool;
         emit NewBorrowPool(oldPool, newBorrowPool);
     }

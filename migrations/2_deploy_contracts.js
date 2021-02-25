@@ -1,4 +1,3 @@
-const BN = require('bn.js');
 const web3 = require('web3');
 const Comptroller = artifacts.require("Comptroller");
 const Borrows = artifacts.require("Borrows");
@@ -18,6 +17,8 @@ const TestOracle = artifacts.require("TestOracle");
 const USDC = artifacts.require("TestUSDC");
 const USDT = artifacts.require("TestUSDT");
 const WBTC = artifacts.require("TestWBTC");
+
+// TODO: print some log while initialize, split these code to multi file
 
 module.exports = async function (depolyer) {
     /* deploy suit contract */
@@ -51,10 +52,11 @@ module.exports = async function (depolyer) {
     /* initialize system*/
     // feed price, for test
     let oracle = await TestOracle.deployed();
+    /// @notice normalize price by asset decimals
     await oracle.setPrice(zeroAddress, web3.utils.toWei('1902'));
-    await oracle.setPrice(WBTC.address, web3.utils.toWei('51234'));
-    await oracle.setPrice(USDC.address, web3.utils.toWei('1'));
-    await oracle.setPrice(USDT.address, web3.utils.toWei('1.012')); // 1.012
+    await oracle.setPrice(WBTC.address, web3.utils.toWei('51234') * (10 ** 10));
+    await oracle.setPrice(USDC.address, web3.utils.toWei('1') * (10 ** 12));
+    await oracle.setPrice(USDT.address, web3.utils.toWei('1.012') * (10 ** 12)); // 1.012
     // initialize comptroller
     let comptroller = await Comptroller.at(ComptrollerProxy.address);
     await comptroller.initialize(CycleStableCoin.address, CycleGovToken.address, BorrowsProxy.address);
@@ -65,7 +67,6 @@ module.exports = async function (depolyer) {
     // initialize dToken
     let dEther = await DEther.at(dEtherProxy.address);
     await dEther.initialize(TestOracle.address, ComptrollerProxy.address);
-    console.log(dEtherProxy.address);
     let dWBTC = await DERC20.at(dWBTCProxy.address);
     await dWBTC.initialize(TestOracle.address, ComptrollerProxy.address);
     let dUSDC = await DERC20.at(dUSDCProxy.address);
@@ -77,4 +78,16 @@ module.exports = async function (depolyer) {
     await comptroller.registerMarket(dWBTC.address, web3.utils.toWei('0.75'));
     await comptroller.registerMarket(dUSDC.address, web3.utils.toWei('0.75'));
     await comptroller.registerMarket(dUSDT.address, web3.utils.toWei('0.75'));
+    // set CFGT approver
+    let cfgt = await CycleGovToken.deployed();
+    await cfgt.setApprover(comptroller.address, web3.utils.toWei('2050000'));
+    // set CFSC minter
+    let cfsc = await CycleStableCoin.deployed();
+    await cfsc.methods['setMinter(address,address)'](borrowPool.address, ExchangePool.address);
+    // config exchange pool
+    let exchangePool = await ExchangePool.deployed();
+    await exchangePool.setOracle(oracle.address);
+    await exchangePool.setCFSC(cfsc.address);
+    await exchangePool.setSupportedAsset(USDT.address, true);
+    await exchangePool.setSupportedAsset(USDC.address, true);
 }

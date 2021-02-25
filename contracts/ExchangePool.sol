@@ -8,6 +8,8 @@ import "./Oracle.sol";
 import "./math/Exponential.sol";
 import "./SafeERC20.sol";
 
+// TODO: maybe add exchange fee
+
 contract ExchangePool is Ownable, Exponential {
     using SafeERC20 for address;
     Oracle public oracle;
@@ -16,6 +18,12 @@ contract ExchangePool is Ownable, Exponential {
 
     CycleStableCoin public CFSC;
     mapping(address => bool) public supportedAssets;
+
+    /* modifier */
+    modifier assetSupported(address asset){
+        require(supportedAssets[asset], "asset is unsupported");
+        _;
+    }
 
     event SetSupportedAsset(address indexed asset, bool valid);
     event MintCFSC(address minter, uint amount);
@@ -39,7 +47,7 @@ contract ExchangePool is Ownable, Exponential {
     }
 
     // return minted CFSC amount
-    function mint(address asset, uint tokenAmount) public returns (uint){
+    function mint(address asset, uint tokenAmount) public assetSupported(asset) returns (uint){
         require(asset.safeTransferFrom(msg.sender, address(this), tokenAmount), "transferFrom failed");
         Exp memory price = Exp(oracle.getPrice(asset));
         // because CFSC decimals is same with expScale, the cfscAmount is the final result
@@ -50,7 +58,7 @@ contract ExchangePool is Ownable, Exponential {
     }
 
     // return `asset` amount
-    function mintByCFSCAmount(address asset, uint cfscAmount) public returns (uint){
+    function mintByCFSCAmount(address asset, uint cfscAmount) public assetSupported(asset) returns (uint){
         Exp memory assetPrice = Exp(oracle.getPrice(asset));
         Exp memory cfscPrice = Exp(CFSC_PRICE);
         // tokenAmount = cfscAmount * cfscPrice / assetPrice = cfscAmount * (cfscPrice / assetPrice)
@@ -63,7 +71,7 @@ contract ExchangePool is Ownable, Exponential {
     }
 
     // return burned CFSC amount
-    function burn(address asset, uint tokenAmount) public returns (uint){
+    function burn(address asset, uint tokenAmount) public assetSupported(asset) returns (uint){
         Exp memory assetPrice = Exp(oracle.getPrice(asset));
         // because CFSC decimals is same with expScale, the cfscAmount is the final result
         (MathError err, uint cfscAmount) = mulScalarTruncate(assetPrice, tokenAmount);
@@ -75,7 +83,7 @@ contract ExchangePool is Ownable, Exponential {
     }
 
     // return `asset` amount
-    function burnByCFSCAmount(address asset, uint cfscAmount) public returns (uint){
+    function burnByCFSCAmount(address asset, uint cfscAmount) public assetSupported(asset) returns (uint){
         require(CFSC.transferFrom(msg.sender, address(this), cfscAmount), "transferFrom CFSC failed");
         CFSC.burn(cfscAmount);
         Exp memory assetPrice = Exp(oracle.getPrice(asset));

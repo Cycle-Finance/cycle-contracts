@@ -3,6 +3,8 @@ pragma solidity ^0.7.0;
 
 import "../Oracle.sol";
 
+// TODO: normalize price by asset price
+
 contract TestOracle is IOracle {
     mapping(address => uint) public price;
 

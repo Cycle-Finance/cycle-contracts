@@ -48,7 +48,7 @@ module.exports = {
         // },
         ganache: {
             host: "127.0.0.1",     // Localhost (default: none)
-            port: 8545,            // Standard Ethereum port (default: none)
+            port: 7545,            // Standard Ethereum port (default: none)
             network_id: "*",       // Any network (default: none)
             // provider: function () {
             //     return new HDWalletProvider(mnemonic, "http://127.0.0.1:7545")

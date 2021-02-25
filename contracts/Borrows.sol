@@ -23,8 +23,7 @@ contract Borrows is BorrowsStorage, Exponential, ErrorReporter {
     event NewReserveFactor(uint oldFactor, uint newFactor);
 
     // return (errorInfo, interestAccumulated)
-    // TODO: onlyComptroller
-    function accrueInterest() public returns (string memory, uint){
+    function accrueInterest() public onlyComptroller returns (string memory, uint){
         uint blockDelta = block.number - accrualBlock;
 
         MathError mathErr;
@@ -62,8 +61,12 @@ contract Borrows is BorrowsStorage, Exponential, ErrorReporter {
 
         /* transfer interest*/
         uint supplyInterest = sub_(interestAccumulated, reservesCurrent);
-        CFSC.mint(address(this), reservesCurrent);
-        CFSC.mint(address(comptroller), supplyInterest);
+        if (reservesCurrent > 0) {
+            CFSC.mint(address(this), reservesCurrent);
+        }
+        if (supplyInterest > 0) {
+            CFSC.mint(address(comptroller), supplyInterest);
+        }
 
         /* We write the previously calculated values into storage */
         accrualBlock = block.number;
@@ -196,13 +199,13 @@ contract Borrows is BorrowsStorage, Exponential, ErrorReporter {
     /* admin function */
 
     function initialize(CycleStableCoin cfsc, InterestRateModel _interestRateModel, ComptrollerInterface _comptroller,
-        address exchangePool, IOracle _oracle, uint _reserveFactor) public onlyOwner {
+        address _exchangePool, IOracle _oracle, uint _reserveFactor) public onlyOwner {
         require(accrualBlock == 0 && borrowIndex == 0, "could only be initialized once");
         CFSC = cfsc;
         interestRateModel = _interestRateModel;
         require(_comptroller.isComptroller(), "illegal comptroller");
         comptroller = _comptroller;
-        exchangePool = exchangePool;
+        exchangePool = _exchangePool;
         oracle = _oracle;
         borrowIndex = mantissaOne;
         require(_reserveFactor < mantissaOne, "illegal reserve factor");

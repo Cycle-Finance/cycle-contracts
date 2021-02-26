@@ -93,12 +93,18 @@ contract('Interface test', async (accounts) => {
         let newMaxCloseFactor = await comptroller.maxCloseFactor();
         assert.equal(newMaxCloseFactor, maxCloseFactor);
         await comptroller.setMaxCloseFactor(web3.utils.toWei('0.8'));
-        // check max close factor
+        // check liquidation incentive
         let liquidationIncentive = web3.utils.toWei('1.1');
         await comptroller.setLiquidationIncentive(liquidationIncentive);
         let newLiquidationIncentive = await comptroller.liquidationIncentive();
         assert.equal(liquidationIncentive, newLiquidationIncentive);
         await comptroller.setLiquidationIncentive(web3.utils.toWei('1.08'));
+        // check reserve factor
+        let reserveFactor = web3.utils.toWei('0.3');
+        await comptroller.setReserveFactor(reserveFactor);
+        let newReserveFactor = await borrowPool.reserveFactor();
+        assert.equal(reserveFactor, newReserveFactor);
+        await comptroller.setReserveFactor(reserveFactor);
     });
     it('oracle interface test', async () => {
         let oracle = await TestOracle.deployed();
@@ -287,5 +293,51 @@ contract('Interface test', async (accounts) => {
         assert.equal(dWBTCDepositValue, 0);
         assert.equal(dUSDCDepositValue, 0);
         assert.equal(dUSDTDepositValue, 0);
+    });
+    it('borrow pool interface test', async () => {
+        let comptroller = await Comptroller.at(ComptrollerProxy.address);
+        let dEtherAddr = await comptroller.markets(0);
+        let dEther = await DEther.at(dEtherAddr);
+        let etherAmount = web3.utils.toWei('10');
+        let oracle = await TestOracle.deployed();
+        // set eth price is $2000
+        await oracle.setPrice(zeroAddress, web3.utils.toWei('2000'));
+        // deposit 10 ETH
+        await dEther.mint(etherAmount, {value: etherAmount});
+        // borrow $10000
+        let borrowPool = await Borrows.at(BorrowsProxy.address);
+        let initBorrowIndex = await borrowPool.borrowIndex();
+        let initAccountBorrows = await borrowPool.getBorrows(accounts[0]);
+        let initTotalBorrows = await borrowPool.totalBorrows();
+        let borrowPrincipal = web3.utils.toWei('10000');
+        await borrowPool.borrow(borrowPrincipal);
+        let accountBorrows = await borrowPool.getBorrows(accounts[0]);
+        let totalBorrows = await borrowPool.totalBorrows();
+        let borrowIndex = await borrowPool.borrowIndex();
+        assert.equal(accountBorrows, totalBorrows);
+        assert.ok(accountBorrows > initAccountBorrows);
+        assert.ok(borrowIndex > initBorrowIndex);
+        assert.ok(totalBorrows > initTotalBorrows);
+        // check other interface, so that block chain increase
+        // set oracle and comptroller
+        let newOracle = await TestOracle.new();
+        let newComptroller = await ComptrollerProxy.new(Comptroller.address, emptyData);
+        await borrowPool.setOracle(newOracle.address);
+        await borrowPool.setComptroller(newComptroller.address);
+        let contractOracle = await borrowPool.oracle();
+        let contractComptroller = await borrowPool.comptroller();
+        assert.equal(newOracle.address, contractOracle);
+        assert.equal(newComptroller.address, contractComptroller);
+        await borrowPool.setOracle(TestOracle.address);
+        await borrowPool.setComptroller(ComptrollerProxy.address);
+        // supported SC
+        await borrowPool.setSupportedSC(USDT.address, true);
+        await borrowPool.setSupportedSC(USDC.address, true);
+        let usdcSupport = await borrowPool.supportedSC(USDC.address);
+        let usdtSupport = await borrowPool.supportedSC(USDT.address);
+        assert.ok(usdcSupport);
+        assert.ok(usdtSupport);
+        // TODO: repay
+        // TODO: liquidate
     });
 });

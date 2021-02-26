@@ -459,6 +459,11 @@ contract Comptroller is ComptrollerStorage, Exponential {
         borrowPool.reduceReserves(owner());
     }
 
+    function setReserveFactor(uint factor) public onlyOwner {
+        refreshMarketDeposit();
+        borrowPool.setReserveFactor(factor);
+    }
+
     function setPublicBorrower(address newBorrower) public onlyOwner {
         address oldBorrower = publicBorrower;
         uint publicBorrows = borrowPool.getBorrows(oldBorrower);

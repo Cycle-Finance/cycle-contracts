@@ -10,6 +10,8 @@ interface BorrowsInterface {
     // return reserves amount
     function reduceReserves(address recipient) external returns (uint);
 
+    function setReserveFactor(uint factor) external;
+
     function borrowIndex() external view returns (uint);
 
     // return total borrows, is scalar

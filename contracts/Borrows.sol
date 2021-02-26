@@ -17,10 +17,12 @@ contract Borrows is BorrowsStorage, Exponential, ErrorReporter {
     event RepayBorrow(address payer, address borrower, uint repayAmount, uint accountBorrows, uint totalBorrows);
     event LiquidateBorrow(address liquidator, address borrower, uint repayAmount, address dToken, uint seizeTokens);
 
+    event ReduceReserve(address recipient, uint amount);
+    event NewReserveFactor(uint oldFactor, uint newFactor);
+
     event NewOracle(IOracle oldOracle, IOracle newOracle);
     event NewComptroller(ComptrollerInterface oldComptroller, ComptrollerInterface newComptroller);
     event UpdateSupportedSC(address sc, bool valid);
-    event NewReserveFactor(uint oldFactor, uint newFactor);
 
     // return (errorInfo, interestAccumulated)
     function accrueInterest() public onlyComptroller returns (string memory, uint){
@@ -196,7 +198,15 @@ contract Borrows is BorrowsStorage, Exponential, ErrorReporter {
     function reduceReserves(address recipient) public onlyComptroller returns (uint){
         uint reserves = CFSC.balanceOf(address(this));
         require(CFSC.transfer(recipient, reserves), "reduce reserve failed");
+        emit ReduceReserve(recipient, reserves);
         return reserves;
+    }
+
+    function setReserveFactor(uint factor) public onlyComptroller {
+        uint oldFactor = reserveFactor;
+        require(factor < mantissaOne, "illegal reserve factor");
+        reserveFactor = factor;
+        emit NewReserveFactor(oldFactor, factor);
     }
 
     /* admin function */
@@ -233,12 +243,5 @@ contract Borrows is BorrowsStorage, Exponential, ErrorReporter {
     function setSupportedSC(address sc, bool valid) public onlyOwner {
         supportedSC[sc] = valid;
         emit UpdateSupportedSC(sc, valid);
-    }
-
-    function setReserveFactor(uint factor) public onlyOwner {
-        uint oldFactor = reserveFactor;
-        require(factor < mantissaOne, "illegal reserve factor");
-        reserveFactor = factor;
-        emit NewReserveFactor(oldFactor, factor);
     }
 }

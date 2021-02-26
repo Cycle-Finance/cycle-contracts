@@ -54,9 +54,9 @@ module.exports = async function (depolyer) {
     let oracle = await TestOracle.deployed();
     /// @notice normalize price by asset decimals
     await oracle.setPrice(zeroAddress, web3.utils.toWei('1902'));
-    await oracle.setPrice(WBTC.address, web3.utils.toWei('51234') * (10 ** 10));
-    await oracle.setPrice(USDC.address, web3.utils.toWei('1') * (10 ** 12));
-    await oracle.setPrice(USDT.address, web3.utils.toWei('1.012') * (10 ** 12)); // 1.012
+    await oracle.setPrice(WBTC.address, web3.utils.toWei('51234'));
+    await oracle.setPrice(USDC.address, web3.utils.toWei('1'));
+    await oracle.setPrice(USDT.address, web3.utils.toWei('1.012')); // 1.012
     // initialize comptroller
     let comptroller = await Comptroller.at(ComptrollerProxy.address);
     await comptroller.initialize(CycleStableCoin.address, CycleGovToken.address, BorrowsProxy.address);

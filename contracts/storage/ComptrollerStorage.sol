@@ -30,7 +30,7 @@ contract ComptrollerStorage is Ownable {
     uint public totalDeposit;
     // market deposit is the weight of interest distribution and CFGT distribution
     // dTokenAddress => depositValue
-    mapping(address => uint) marketDeposit;
+    mapping(address => uint) public marketDeposit;
 
     /// @dev interest distribution index
     // dTokenAddress => index

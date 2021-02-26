@@ -3,12 +3,15 @@ pragma solidity ^0.7.0;
 
 import "../Oracle.sol";
 
-// TODO: normalize price by asset price
-
 contract TestOracle is IOracle {
     mapping(address => uint) public price;
 
     function setPrice(address asset, uint _price) public {
+        if (asset != address(0)) {
+            uint expScale = 10 ** 18;
+            uint decimals = Decimals(asset).decimals();
+            _price = _price * expScale / (10 ** decimals);
+        }
         price[asset] = _price;
     }
 

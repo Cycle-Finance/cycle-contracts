@@ -1,3 +1,4 @@
+const BN = require('bn.js');
 const web3 = require('web3');
 const Comptroller = artifacts.require("Comptroller");
 const Borrows = artifacts.require("Borrows");
@@ -42,7 +43,7 @@ contract('Interface test', async (accounts) => {
         let currentRefreshedBlock = await comptroller.refreshedBlock();
         assert.ok(currentRefreshedBlock > initRefreshedBlock);
         // check log
-        console.log(refreshMarketTxReceipt);
+        // console.log(refreshMarketTxReceipt);
         // truffle has some problem that refreshMarketTxReceipt couldn't decode raw logs
         // assert.equal(refreshMarketTxReceipt.logs.length, 1);
     });
@@ -102,9 +103,9 @@ contract('Interface test', async (accounts) => {
     it('oracle interface test', async () => {
         let oracle = await TestOracle.deployed();
         let ethPrice = web3.utils.toWei('1635.56');
-        let btcPrice = web3.utils.toWei('50019') * (10 ** 10);
-        let usdcPrice = web3.utils.toWei('1') * (10 ** 12);
-        let usdtPrice = web3.utils.toWei('1.001') * (10 ** 12);
+        let btcPrice = web3.utils.toWei('50019');
+        let usdcPrice = web3.utils.toWei('1');
+        let usdtPrice = web3.utils.toWei('1.001');
         await oracle.setPrice(zeroAddress, ethPrice);
         await oracle.setPrice(WBTC.address, btcPrice);
         await oracle.setPrice(USDC.address, usdcPrice);
@@ -114,9 +115,9 @@ contract('Interface test', async (accounts) => {
         let contractUSDCPrice = await oracle.getPrice(USDC.address);
         let contractUSDTPrice = await oracle.getPrice(USDT.address);
         assert.equal(ethPrice, contractEthPrice);
-        assert.equal(btcPrice, contractBTCPrice);
-        assert.equal(usdcPrice, contractUSDCPrice);
-        assert.equal(usdtPrice, contractUSDTPrice);
+        assert.equal(btcPrice, contractBTCPrice / (10 ** 10));
+        assert.equal(usdcPrice, contractUSDCPrice / (10 ** 12));
+        assert.equal(usdtPrice, contractUSDTPrice / (10 ** 12));
     });
     it('test exchange pool interface', async () => {
         let exchangePool = await ExchangePool.deployed();
@@ -126,7 +127,7 @@ contract('Interface test', async (accounts) => {
         let initCFSCBalance = await cfsc.balanceOf(accounts[0]);
         let initUSDCBalance = await usdc.balanceOf(accounts[0]);
         let initUSDTBalance = await usdt.balanceOf(accounts[0]);
-        console.log(initCFSCBalance, initUSDCBalance, initUSDTBalance);
+        console.log(initCFSCBalance.toString(), initUSDCBalance.toString(), initUSDTBalance.toString());
         let contractInitUSDCBalance = await usdc.balanceOf(exchangePool.address);
         let contractInitUSDTBalance = await usdt.balanceOf(exchangePool.address);
         usdc.approve(exchangePool.address, initUSDCBalance);
@@ -149,27 +150,142 @@ contract('Interface test', async (accounts) => {
         // because USDT price is more than $1
         assert.ok(initUSDTBalance - usdtBalance < exchangeAmount);
         let contractUSDTBalance = await usdt.balanceOf(exchangePool.address);
+        console.log('contract USDT balance: %d', contractUSDTBalance);
         assert.equal(contractUSDTBalance - contractInitUSDTBalance, initUSDTBalance - usdtBalance);
         cfscBalance = await cfsc.balanceOf(accounts[0]);
         assert.equal(cfscBalance - initCFSCBalance, exchangeCFSCAmount * 2);
-        // use CFSC to buy USDC
+        // use CFSC to buy USDC, approve CFSC firstly
+        await cfsc.approve(exchangePool.address, cfscBalance);
         await exchangePool.burn(usdc.address, exchangeAmount);
         usdcBalance = await usdc.balanceOf(accounts[0]);
         cfscBalance = await cfsc.balanceOf(accounts[0]);
         contractUSDCBalance = await usdc.balanceOf(exchangePool.address);
-        assert.equal(usdcBalance, initUSDCBalance);
-        assert.equal(cfscBalance, exchangeCFSCAmount);
+        assert.equal(usdcBalance.toString(), initUSDCBalance.toString());
+        assert.equal(cfscBalance.toString(), exchangeCFSCAmount.toString());
         assert.equal(contractUSDCBalance, 0);
         // use CFSC to buy USDT
         await exchangePool.burnByCFSCAmount(usdt.address, exchangeCFSCAmount);
         usdtBalance = await usdt.balanceOf(accounts[0]);
         cfscBalance = await cfsc.balanceOf(accounts[0]);
         contractUSDTBalance = await usdt.balanceOf(exchangePool.address);
-        assert.equal(usdtBalance, initUSDTBalance);
+        assert.equal(usdtBalance.toString(), initUSDTBalance.toString());
         assert.equal(cfscBalance, 0);
         assert.equal(contractUSDTBalance, 0);
     });
     it('dToken interface test', async () => {
-        // deposit
+        let comptroller = await Comptroller.at(ComptrollerProxy.address);
+        let dEtherAddr = await comptroller.markets(0);
+        let dWBTCAddr = await comptroller.markets(1);
+        let dUSDCAddr = await comptroller.markets(2);
+        let dUSDTAddr = await comptroller.markets(3);
+        let dEther = await DEther.at(dEtherAddr);
+        let dWBTC = await DERC20.at(dWBTCAddr);
+        let dUSDC = await DERC20.at(dUSDCAddr);
+        let dUSDT = await DERC20.at(dUSDTAddr);
+        // set oracle and comptroller
+        let newOracle = await TestOracle.new();
+        let newComptroller = await ComptrollerProxy.new(Comptroller.address, emptyData);
+        await dEther.setOracle(newOracle.address);
+        await dEther.setComptroller(newComptroller.address);
+        let contractOracle = await dEther.oracle();
+        let contractComptroller = await dEther.comptroller();
+        assert.equal(newOracle.address, contractOracle);
+        assert.equal(newComptroller.address, contractComptroller);
+        await dEther.setOracle(TestOracle.address);
+        await dEther.setComptroller(ComptrollerProxy.address);
+        // check tokenValue and tokenAmount interface
+        let tokenAmount = web3.utils.toWei('1'); // 1 ether
+        let contractTokenValue = await dEther.tokenValue(tokenAmount);
+        let contractTokenAmount = await dEther.tokenAmount(contractTokenValue);
+        assert.equal(tokenAmount.toString(), contractTokenAmount.toString());
+        // mint
+        let etherAmount = web3.utils.toWei('1'); // 1 ether
+        let wbtcAmount = 100000000; // 1 WBTC
+        let usdcAmount = 100000000; // 100 USDC
+        let usdtAmount = 100000000; // 100 USDT
+        await dEther.mint(etherAmount, {value: etherAmount});
+        let wbtc = await WBTC.deployed();
+        let usdc = await USDC.deployed();
+        let usdt = await USDT.deployed();
+        await wbtc.approve(dWBTC.address, wbtcAmount);
+        await usdc.approve(dUSDC.address, usdcAmount);
+        await usdt.approve(dUSDT.address, usdtAmount);
+        await dWBTC.mint(wbtcAmount);
+        await dUSDC.mint(usdcAmount);
+        await dUSDT.mint(usdtAmount);
+        // check balance
+        let dEtherAmount = await dEther.balanceOf(accounts[0]);
+        let dWBTCAmount = await dWBTC.balanceOf(accounts[0]);
+        let dUSDCAmount = await dUSDC.balanceOf(accounts[0]);
+        let dUSDTAmount = await dUSDT.balanceOf(accounts[0]);
+        assert.equal(dEtherAmount.toString(), etherAmount.toString());
+        assert.equal(dWBTCAmount.toString(), wbtcAmount.toString());
+        assert.equal(dUSDCAmount.toString(), usdcAmount.toString());
+        assert.equal(dUSDTAmount.toString(), usdtAmount.toString());
+        // check deposit value
+        let dEtherDepositValue = await dEther.depositValue();
+        let dWBTCDepositValue = await dWBTC.depositValue();
+        let dUSDCDepositValue = await dUSDC.depositValue();
+        let dUSDTDepositValue = await dUSDT.depositValue();
+        assert.ok(dEtherDepositValue > 0);
+        assert.ok(dWBTCDepositValue > 0);
+        assert.ok(dUSDCDepositValue > 0);
+        assert.ok(dUSDTDepositValue > 0);
+        let userDEtherDepositValue = await dEther.userDepositValue(accounts[0]);
+        let userDWBTCDepositValue = await dWBTC.userDepositValue(accounts[0]);
+        let userDUSDCDepositValue = await dUSDC.userDepositValue(accounts[0]);
+        let userDUSDTDepositValue = await dUSDT.userDepositValue(accounts[0]);
+        // user deposit should equals total deposit, because there is only one user deposit
+        assert.equal(dEtherDepositValue.toString(), userDEtherDepositValue.toString());
+        assert.equal(dWBTCDepositValue.toString(), userDWBTCDepositValue.toString());
+        assert.equal(dUSDCDepositValue.toString(), userDUSDCDepositValue.toString());
+        assert.equal(dUSDTDepositValue.toString(), userDUSDTDepositValue.toString());
+        let totalDeposit = dEtherDepositValue.add(dWBTCDepositValue).add(dUSDCDepositValue).add(dUSDTDepositValue);
+        await comptroller.refreshMarketDeposit();
+        let comptrollerTotalDeposit = await comptroller.totalDeposit();
+        assert.equal(totalDeposit.toString(), comptrollerTotalDeposit.toString());
+        let comptrollerDEtherDeposit = await comptroller.marketDeposit(dEther.address);
+        let comptrollerDWBTCDeposit = await comptroller.marketDeposit(dWBTC.address);
+        let comptrollerDUSDTDeposit = await comptroller.marketDeposit(dUSDT.address);
+        let comptrollerDUSDCDeposit = await comptroller.marketDeposit(dUSDC.address);
+        assert.equal(dEtherDepositValue.toString(), comptrollerDEtherDeposit.toString());
+        assert.equal(dWBTCDepositValue.toString(), comptrollerDWBTCDeposit.toString());
+        assert.equal(dUSDCDepositValue.toString(), comptrollerDUSDCDeposit.toString());
+        assert.equal(dUSDTDepositValue.toString(), comptrollerDUSDTDeposit.toString());
+        // transfer
+        await dEther.transfer(accounts[1], etherAmount);
+        await dWBTC.transfer(accounts[1], wbtcAmount);
+        await dUSDC.transfer(accounts[1], usdcAmount);
+        await dUSDT.transfer(accounts[1], usdtAmount);
+        // check balanceOf accounts[1]
+        dEtherAmount = await dEther.balanceOf(accounts[1]);
+        dWBTCAmount = await dWBTC.balanceOf(accounts[1]);
+        dUSDCAmount = await dUSDC.balanceOf(accounts[1]);
+        dUSDTAmount = await dUSDT.balanceOf(accounts[1]);
+        assert.equal(dEtherAmount.toString(), etherAmount.toString());
+        assert.equal(dWBTCAmount.toString(), wbtcAmount.toString());
+        assert.equal(dUSDCAmount.toString(), usdcAmount.toString());
+        assert.equal(dUSDTAmount.toString(), usdtAmount.toString());
+        // redeem
+        await dEther.redeem(dEtherAmount, {from: accounts[1]});
+        let tx = await dWBTC.redeem(dWBTCAmount, {from: accounts[1]});
+        await dUSDC.redeem(dUSDCAmount, {from: accounts[1]});
+        await dUSDT.redeem(dUSDTAmount, {from: accounts[1]});
+        dEtherAmount = await dEther.balanceOf(accounts[1]);
+        dWBTCAmount = await dWBTC.balanceOf(accounts[1]);
+        dUSDCAmount = await dUSDC.balanceOf(accounts[1]);
+        dUSDTAmount = await dUSDT.balanceOf(accounts[1]);
+        assert.equal(dEtherAmount, 0);
+        assert.equal(dWBTCAmount, 0);
+        assert.equal(dUSDCAmount, 0);
+        assert.equal(dUSDTAmount, 0);
+        dEtherDepositValue = await dEther.depositValue();
+        dWBTCDepositValue = await dWBTC.depositValue();
+        dUSDCDepositValue = await dUSDC.depositValue();
+        dUSDTDepositValue = await dUSDT.depositValue();
+        assert.equal(dEtherDepositValue, 0);
+        assert.equal(dWBTCDepositValue, 0);
+        assert.equal(dUSDCDepositValue, 0);
+        assert.equal(dUSDTDepositValue, 0);
     });
 });

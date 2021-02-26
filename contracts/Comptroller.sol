@@ -45,8 +45,8 @@ contract Comptroller is ComptrollerStorage, Exponential {
         uint tempTotalDeposit = 0;
         for (uint i = 0; i < markets.length; i++) {
             address market = markets[i];
-            if (marketDeposit[market] > 0) {
-                uint dTokenTotalSupply = IERC20(market).totalSupply();
+            uint dTokenTotalSupply = IERC20(market).totalSupply();
+            if (marketDeposit[market] > 0 && totalDeposit > 0 && dTokenTotalSupply > 0) {
                 (MathError err,Exp memory marketWeight) = getExp(marketDeposit[market], totalDeposit);
                 require(err == MathError.NO_ERROR, "cal market weight failed");
                 /* update interest index */
@@ -85,7 +85,7 @@ contract Comptroller is ComptrollerStorage, Exponential {
     }
 
     // @return 0 means that no error
-    function mintVerified(address, address, uint) public {
+    function mintVerify(address, address, uint) public {
     }
 
     function redeemAllowed(address dToken, address redeemer, uint redeemTokens)
@@ -256,22 +256,22 @@ contract Comptroller is ComptrollerStorage, Exponential {
     internal view returns (MathError, uint, uint){
         Exp memory systemFactor = Exp(systemUtilizationRate);
         Exp memory deposit = Exp(totalDeposit);
-        (MathError err, Exp memory borrowLimit) = mulExp(systemFactor, deposit);
-        if (err != MathError.NO_ERROR) {
-            return (err, 0, 0);
-        }
         uint totalBorrows = borrowPool.totalBorrows();
         Exp memory hypotheticalBorrows = Exp((totalBorrows + borrowAmount) * expScale);
         Exp memory hypotheticalRedeemValue = Exp(dToken == address(0) ?
             0 : DTokenInterface(dToken).tokenValue(redeemTokens));
-        (MathError err1,Exp memory borrowEffects) = addExp(hypotheticalBorrows, hypotheticalRedeemValue);
-        if (err1 != MathError.NO_ERROR) {
+        (MathError err,Exp memory remainLiquidity) = subExp(deposit, hypotheticalRedeemValue);
+        if (err != MathError.NO_ERROR) {
             return (err, 0, 0);
         }
-        if (lessThanExp(borrowEffects, borrowLimit)) {
-            return (MathError.NO_ERROR, borrowLimit.mantissa - borrowEffects.mantissa, 0);
+        (MathError err1, Exp memory borrowLimit) = mulExp(systemFactor, remainLiquidity);
+        if (err1 != MathError.NO_ERROR) {
+            return (err1, 0, 0);
+        }
+        if (lessThanExp(hypotheticalBorrows, borrowLimit)) {
+            return (MathError.NO_ERROR, borrowLimit.mantissa - hypotheticalBorrows.mantissa, 0);
         } else {
-            return (MathError.NO_ERROR, 0, borrowEffects.mantissa - borrowLimit.mantissa);
+            return (MathError.NO_ERROR, 0, hypotheticalBorrows.mantissa - borrowLimit.mantissa);
         }
     }
 
@@ -284,37 +284,30 @@ contract Comptroller is ComptrollerStorage, Exponential {
 
     function getHypotheticalAccountLiquidity(address account, address dToken, uint redeemTokens, uint borrowAmount)
     internal view returns (MathError, uint, uint){
-        (uint mErr, uint accountBorrowLimit) = getAccountBorrowLimit(account);
-        if (mErr != 0) {
-            return (MathError(mErr), 0, 0);
-        }
-        Exp memory redeems = Exp(redeemTokens > 0 ? DTokenInterface(dToken).tokenValue(redeemTokens) : 0);
-        Exp memory hypotheticalBorrows = add_(redeems, Exp(borrowAmount * expScale));
-        Exp memory borrowLimit = Exp(accountBorrowLimit);
-        if (lessThanExp(hypotheticalBorrows, borrowLimit)) {
-            return (MathError.NO_ERROR, sub_(borrowLimit, hypotheticalBorrows).mantissa, 0);
-        } else {
-            return (MathError.NO_ERROR, 0, sub_(hypotheticalBorrows, borrowLimit).mantissa);
-        }
-    }
-
-    /// @return (errCode, borrowLimit), value is exponential
-    function getAccountBorrowLimit(address account) public view returns (uint, uint){
-        Exp memory borrowLimit = Exp(0);
+        Exp memory borrowLimit;
         for (uint i = 0; i < markets.length; i++) {
             address market = markets[i];
             Exp memory userDeposit = Exp(DTokenInterface(market).userDepositValue(account));
             if (userDeposit.mantissa == 0) {
                 continue;
             }
+            if (dToken == market) {
+                Exp memory redeemValue = Exp(DTokenInterface(market).tokenValue(redeemTokens));
+                userDeposit = sub_(userDeposit, redeemValue);
+            }
             Exp memory factor = Exp(collateralFactor[market]);
             (MathError err, Exp memory assetBorrowLimit) = mulExp(factor, userDeposit);
             if (err != MathError.NO_ERROR) {
-                return (uint(err), 0);
+                return (err, 0, 0);
             }
             borrowLimit = add_(borrowLimit, assetBorrowLimit);
         }
-        return (0, borrowLimit.mantissa);
+        Exp memory hypotheticalBorrows = Exp(borrowAmount * expScale);
+        if (lessThanExp(hypotheticalBorrows, borrowLimit)) {
+            return (MathError.NO_ERROR, borrowLimit.mantissa - hypotheticalBorrows.mantissa, 0);
+        } else {
+            return (MathError.NO_ERROR, 0, hypotheticalBorrows.mantissa - borrowLimit.mantissa);
+        }
     }
 
     /* distribution function */
@@ -348,7 +341,7 @@ contract Comptroller is ComptrollerStorage, Exponential {
         Double memory deltaIndex = sub_(marketState, userState);
         uint userBalance = IERC20(market).balanceOf(user);
         uint userDelta = mul_(userBalance, deltaIndex);
-        CFSC.mint(user, userDelta);
+        CFSC.transfer(user, userDelta);
         emit DistributeInterest(market, user, userDelta, marketState.mantissa);
     }
 

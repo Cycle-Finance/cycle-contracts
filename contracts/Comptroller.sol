@@ -6,8 +6,9 @@ import "./storage/ComptrollerStorage.sol";
 import "./math/Exponential.sol";
 import "./SafeERC20.sol";
 import "./interfaces/DTokenInterface.sol";
+import "./interfaces/ComptrollerInterface.sol";
 
-contract Comptroller is ComptrollerStorage, Exponential {
+contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
 
     /* event */
     event DistributeInterest(address indexed market, address indexed user, uint amount, uint index);
@@ -27,6 +28,14 @@ contract Comptroller is ComptrollerStorage, Exponential {
     event NewUtilizationRate(uint oldFactor, uint newFactor);
     event NewMaxCloseFactor(uint oldFactor, uint newFactor);
     event NewLiquidationIncentive(uint oldIncentive, uint newIncentive);
+
+    function _isComptroller() public override pure returns (bool){
+        return true;
+    }
+
+    function _totalDeposit() public override view returns (uint){
+        return totalDeposit;
+    }
 
     /*
     * @notice accrue interest, update interest index, update supply CFGT index, refresh market deposit
@@ -74,7 +83,7 @@ contract Comptroller is ComptrollerStorage, Exponential {
     }
 
     // @return 0 means that no error
-    function mintAllowed(address dToken, address minter, uint amount) public returns (string memory){
+    function mintAllowed(address dToken, address minter, uint amount) public override returns (string memory){
         require(!mintPaused[dToken], "mint is paused");
         /* shield compiler warning -- unused variable */
         amount;
@@ -85,11 +94,11 @@ contract Comptroller is ComptrollerStorage, Exponential {
     }
 
     // @return 0 means that no error
-    function mintVerify(address, address, uint) public {
+    function mintVerify(address, address, uint) public override {
     }
 
     function redeemAllowed(address dToken, address redeemer, uint redeemTokens)
-    public returns (string memory){
+    public override returns (string memory){
         refreshMarketDeposit();
         distributeInterest(dToken, redeemer);
         distributeSupplierCFGT(dToken, redeemer);
@@ -110,10 +119,10 @@ contract Comptroller is ComptrollerStorage, Exponential {
         return "";
     }
 
-    function redeemVerify(address, address, uint) public {
+    function redeemVerify(address, address, uint) public override {
     }
 
-    function borrowAllowed(address user, uint borrowAmount) public returns (string memory){
+    function borrowAllowed(address user, uint borrowAmount) public override returns (string memory){
         require(!borrowPaused, "borrow is paused");
         refreshMarketDeposit();
         updateBorrowIndex();
@@ -137,10 +146,10 @@ contract Comptroller is ComptrollerStorage, Exponential {
         return "";
     }
 
-    function borrowVerify(address, uint) public {
+    function borrowVerify(address, uint) public override {
     }
 
-    function repayBorrowAllowed(address payer, address borrower, uint repayAmount) public returns (string memory){
+    function repayBorrowAllowed(address payer, address borrower, uint repayAmount) public override returns (string memory){
         /* shield compiler warning -- unused variable */
         payer;
         repayAmount;
@@ -151,13 +160,14 @@ contract Comptroller is ComptrollerStorage, Exponential {
         return "";
     }
 
-    function repayBorrowVerify(address, address, uint) public {
+    function repayBorrowVerify(address, address, uint) public override {
     }
 
     function liquidateBorrowAllowed(address dToken, address liquidator, address borrower, uint repayAmount)
-    public returns (string memory){
+    public override returns (string memory){
         /* shield compiler warning -- unused variable */
         dToken;
+        liquidator;
 
         refreshMarketDeposit();
         if (borrower == publicBorrower) {
@@ -170,7 +180,7 @@ contract Comptroller is ComptrollerStorage, Exponential {
         if (shortfall == 0) {
             return "insufficient shortfall";
         }
-        uint borrowBalance = borrowPool.getBorrows(liquidator);
+        uint borrowBalance = borrowPool.getBorrows(borrower);
         (MathError mathErr, uint maxClose) = mulScalarTruncate(Exp({mantissa : maxCloseFactor}), borrowBalance);
         if (mathErr != MathError.NO_ERROR) {
             return "calculate maxClose failed";
@@ -181,11 +191,11 @@ contract Comptroller is ComptrollerStorage, Exponential {
         return "";
     }
 
-    function liquidateBorrowVerify(address, address, address, uint, uint) public {
+    function liquidateBorrowVerify(address, address, address, uint, uint) public override {
     }
 
     function seizeAllowed(address dToken, address _borrowPool, address liquidator, address borrower, uint seizedTokens)
-    public returns (string memory){
+    public override returns (string memory){
         require(!seizePaused, "seize is paused");
         /* shield compiler warning -- unused variable */
         seizedTokens;
@@ -211,11 +221,11 @@ contract Comptroller is ComptrollerStorage, Exponential {
         return "";
     }
 
-    function seizeVerify(address, address, address, uint) public {
+    function seizeVerify(address, address, address, address, uint) public override {
     }
 
     function transferAllowed(address dToken, address from, address to, uint amount)
-    public returns (string memory){
+    public override returns (string memory){
         require(!transferPaused, "transfer is paused");
         refreshMarketDeposit();
         distributeInterest(dToken, from);
@@ -232,11 +242,11 @@ contract Comptroller is ComptrollerStorage, Exponential {
         return "";
     }
 
-    function transferVerify(address, address, address, uint) public {
+    function transferVerify(address, address, address, uint) public override {
     }
 
     function liquidateCalculateSeizeTokens(address dToken, uint repayAmount)
-    public view returns (string memory, uint){
+    public override view returns (string memory, uint){
         Exp memory repayValue = Exp(repayAmount * expScale);
         (MathError err, Exp memory incentiveRepayValue) = mulExp(Exp(liquidationIncentive), repayValue);
         if (err != MathError.NO_ERROR) {
@@ -246,8 +256,16 @@ contract Comptroller is ComptrollerStorage, Exponential {
         return ("", seizedTokens);
     }
 
+    // return latest system liquidity
+    /// @notice should refresh market deposit to use latest market deposit value
+    function getCurrentSystemLiquidity() public override returns (uint, uint, uint){
+        refreshMarketDeposit();
+        (MathError err, uint liquidity, uint shortfall) = getHypotheticalSystemLiquidity(address(0), 0, 0);
+        return (uint(err), liquidity, shortfall);
+    }
+
     /// @return (errCode, liquidity, shortfall), the value is exponential
-    function getSystemLiquidity() public view returns (uint, uint, uint){
+    function getSystemLiquidity() public override view returns (uint, uint, uint){
         (MathError err, uint liquidity, uint shortfall) = getHypotheticalSystemLiquidity(address(0), 0, 0);
         return (uint(err), liquidity, shortfall);
     }
@@ -256,7 +274,7 @@ contract Comptroller is ComptrollerStorage, Exponential {
     internal view returns (MathError, uint, uint){
         Exp memory systemFactor = Exp(systemUtilizationRate);
         Exp memory deposit = Exp(totalDeposit);
-        uint totalBorrows = borrowPool.totalBorrows();
+        uint totalBorrows = borrowPool._totalBorrows();
         Exp memory hypotheticalBorrows = Exp((totalBorrows + borrowAmount) * expScale);
         Exp memory hypotheticalRedeemValue = Exp(dToken == address(0) ?
             0 : DTokenInterface(dToken).tokenValue(redeemTokens));
@@ -277,7 +295,7 @@ contract Comptroller is ComptrollerStorage, Exponential {
 
     /// @return (errCode, liquidity, shortfall), the value is exponential
     /// @notice if account is publicBorrower, the shortfall is always no less than 0
-    function getAccountLiquidity(address account) public view returns (uint, uint, uint){
+    function getAccountLiquidity(address account) public override view returns (uint, uint, uint){
         (MathError err, uint liquidity, uint shortfall) = getHypotheticalAccountLiquidity(account, address(0), 0, 0);
         return (uint(err), liquidity, shortfall);
     }
@@ -302,7 +320,8 @@ contract Comptroller is ComptrollerStorage, Exponential {
             }
             borrowLimit = add_(borrowLimit, assetBorrowLimit);
         }
-        Exp memory hypotheticalBorrows = Exp(borrowAmount * expScale);
+        uint totalBorrows = borrowPool.getBorrows(account) + borrowAmount;
+        Exp memory hypotheticalBorrows = Exp(totalBorrows * expScale);
         if (lessThanExp(hypotheticalBorrows, borrowLimit)) {
             return (MathError.NO_ERROR, borrowLimit.mantissa - hypotheticalBorrows.mantissa, 0);
         } else {
@@ -318,8 +337,8 @@ contract Comptroller is ComptrollerStorage, Exponential {
         uint deltaBlock = block.number - borrowDistributedBlock;
         if (deltaBlock > 0 && borrowSpeed > 0) {
             uint borrowCFGTAccrued = mul_(borrowSpeed, deltaBlock);
-            Exp memory borrowPoolIndex = Exp(borrowPool.borrowIndex());
-            uint totalBorrows = div_(borrowPool.totalBorrows(), borrowPoolIndex);
+            Exp memory borrowPoolIndex = Exp(borrowPool._borrowIndex());
+            uint totalBorrows = div_(borrowPool._totalBorrows(), borrowPoolIndex);
             if (totalBorrows > 0) {
                 Double memory ratio = fraction(borrowCFGTAccrued, totalBorrows);
                 borrowIndex = add_(borrowIndex, ratio.mantissa);
@@ -371,7 +390,7 @@ contract Comptroller is ComptrollerStorage, Exponential {
             userState.mantissa = doubleScale;
         }
         Double memory deltaIndex = sub_(globalState, userState);
-        Exp memory borrowPoolIndex = Exp(borrowPool.borrowIndex());
+        Exp memory borrowPoolIndex = Exp(borrowPool._borrowIndex());
         uint userBorrows = div_(borrowPool.getBorrows(user), borrowPoolIndex);
         uint userDelta = mul_(userBorrows, deltaIndex);
         userAccrued[user] = add_(userAccrued[user], userDelta);
@@ -475,7 +494,7 @@ contract Comptroller is ComptrollerStorage, Exponential {
     function setBorrowPool(BorrowsInterface newBorrowPool) public onlyOwner {
         BorrowsInterface oldPool = borrowPool;
         if (address(oldPool) != address(0)) {
-            require(oldPool.totalBorrows() == 0, "system has borrows");
+            require(oldPool._totalBorrows() == 0, "system has borrows");
         }
         require(newBorrowPool.isBorrowPool(), "illegal borrow pool");
         borrowPool = newBorrowPool;

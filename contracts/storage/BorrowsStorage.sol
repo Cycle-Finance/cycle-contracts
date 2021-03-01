@@ -8,7 +8,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "../Oracle.sol";
 
 contract BorrowsStorage is Ownable {
-    bool constant public isBorrowPool = true;
 
     CycleStableCoin public CFSC;
 

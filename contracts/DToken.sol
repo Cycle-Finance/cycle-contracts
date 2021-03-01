@@ -111,7 +111,7 @@ abstract contract DToken is DTokenStorage, Exponential {
 
     function setComptroller(ComptrollerInterface _comptroller) public onlyOwner {
         ComptrollerInterface oldComptroller = comptroller;
-        require(_comptroller.isComptroller(), "illegal comptroller");
+        require(_comptroller._isComptroller(), "illegal comptroller");
         comptroller = _comptroller;
         emit NewComptroller(oldComptroller, _comptroller);
     }

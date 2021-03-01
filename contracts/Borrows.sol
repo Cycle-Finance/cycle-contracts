@@ -6,8 +6,9 @@ import "./math/Exponential.sol";
 import "./ErrorReporter.sol";
 import "./SafeERC20.sol";
 import "./interfaces/DTokenInterface.sol";
+import "./interfaces/BorrowsInterface.sol";
 
-contract Borrows is BorrowsStorage, Exponential, ErrorReporter {
+contract Borrows is BorrowsStorage, BorrowsInterface, Exponential, ErrorReporter {
 
     using SafeERC20 for address;
 
@@ -25,7 +26,7 @@ contract Borrows is BorrowsStorage, Exponential, ErrorReporter {
     event UpdateSupportedSC(address sc, bool valid);
 
     // return (errorInfo, interestAccumulated)
-    function accrueInterest() public onlyComptroller returns (string memory, uint){
+    function accrueInterest() public onlyComptroller override returns (string memory, uint){
         uint blockDelta = block.number - accrualBlock;
 
         MathError mathErr;
@@ -35,7 +36,7 @@ contract Borrows is BorrowsStorage, Exponential, ErrorReporter {
         uint reservesCurrent;
         uint borrowIndexNew;
 
-        uint totalDeposit = comptroller.totalDeposit();
+        uint totalDeposit = comptroller._totalDeposit();
         Exp memory borrowRate = Exp(interestRateModel.borrowRatePerBlock(totalDeposit, totalBorrows * expScale));
         (mathErr, simpleInterestFactor) = mulScalar(borrowRate, blockDelta);
         if (mathErr != MathError.NO_ERROR) {
@@ -83,7 +84,7 @@ contract Borrows is BorrowsStorage, Exponential, ErrorReporter {
 
     function borrow(uint amount) public nonReentrant returns (string memory){
         string memory errInfo = comptroller.borrowAllowed(msg.sender, amount);
-        if (bytes(errInfo).length == 0) {
+        if (bytes(errInfo).length != 0) {
             return fail(errInfo);
         }
         if (accrualBlock != block.number) {
@@ -101,22 +102,24 @@ contract Borrows is BorrowsStorage, Exponential, ErrorReporter {
         return "";
     }
 
-    function repayBorrow(address scAddr, uint amount) public returns (string memory){
+    function repayBorrow(address scAddr, uint amount)
+    public nonReentrant returns (string memory){
         (string memory err,) = repayBorrowInternal(scAddr, msg.sender, msg.sender, amount);
         return err;
     }
 
-    function repayBorrowBehalf(address scAddr, address borrower, uint amount) public returns (string memory){
+    function repayBorrowBehalf(address scAddr, address borrower, uint amount)
+    public nonReentrant returns (string memory){
         (string memory err,) = repayBorrowInternal(scAddr, msg.sender, borrower, amount);
         return err;
     }
 
-    // param `amount` represent the number of `scAddr` asset
+    // param `amount` represent the number of CFSC
     // if amount == -1, the borrower will repay whole borrows
     function repayBorrowInternal(address scAddr, address payer, address borrower, uint amount)
-    internal nonReentrant returns (string memory, uint actualRepayAmount){
+    internal returns (string memory, uint actualRepayAmount){
         string memory errInfo = comptroller.repayBorrowAllowed(payer, borrower, amount);
-        if (bytes(errInfo).length == 0) {
+        if (bytes(errInfo).length != 0) {
             return (fail(errInfo), 0);
         }
         if (accrualBlock != block.number) {
@@ -127,15 +130,17 @@ contract Borrows is BorrowsStorage, Exponential, ErrorReporter {
             amount = userBorrows;
         }
         // revert while asset transfer failed
-        require(scAddr.safeTransferFrom(payer, address(this), amount), "transferFrom asset failed");
         if (scAddr == address(CFSC)) {
+            require(scAddr.safeTransferFrom(payer, address(this), amount), "transferFrom asset failed");
             CFSC.burn(amount);
         } else {
-            Exp memory price = Exp(oracle.getPrice(scAddr));
-            MathError err;
-            (err, amount) = mulScalarTruncate(price, amount);
-            require(err == MathError.NO_ERROR, "parse other sc value failed");
-            require(scAddr.safeTransfer(exchangePool, amount), "transfer asset to exchange pool failed");
+            /* scAmount = cfscAmount * cfscPrice / scPrice */
+            (MathError err, Exp memory priceRatio) = divExp(Exp(expScale), Exp(oracle.getPrice(scAddr)));
+            require(err == MathError.NO_ERROR, "parse price failed");
+            uint scAmount;
+            (err, scAmount) = mulScalarTruncate(priceRatio, amount);
+            require(err == MathError.NO_ERROR, "parse amount failed");
+            require(scAddr.safeTransferFrom(payer, exchangePool, scAmount), "transferFrom asset to exchange pool failed");
         }
         uint userBorrowsNew = sub_(userBorrows, amount);
         accountBorrows[borrower] = AccountBorrowSnapshot(borrowIndex, userBorrowsNew);
@@ -146,10 +151,11 @@ contract Borrows is BorrowsStorage, Exponential, ErrorReporter {
         return ("", amount);
     }
 
+    // param `amount` represent the number of CFSC
     function liquidateBorrow(address scAddr, address dToken, address borrower, uint amount)
     public nonReentrant returns (string memory){
-        string memory errInfo = comptroller.liquidateBorrowAllowed(address(this), msg.sender, borrower, amount);
-        if (bytes(errInfo).length == 0) {
+        string memory errInfo = comptroller.liquidateBorrowAllowed(dToken, msg.sender, borrower, amount);
+        if (bytes(errInfo).length != 0) {
             return fail(errInfo);
         }
         if (accrualBlock != block.number) {
@@ -163,26 +169,26 @@ contract Borrows is BorrowsStorage, Exponential, ErrorReporter {
         }
         uint actualRepayAmount;
         (errInfo, actualRepayAmount) = repayBorrowInternal(scAddr, msg.sender, borrower, amount);
-        if (bytes(errInfo).length == 0) {
+        if (bytes(errInfo).length != 0) {
             return fail(errInfo);
         }
         // seize
         uint seizeTokens;
-        (errInfo, seizeTokens) = comptroller.liquidateCalculateSeizeTokens(dToken, msg.sender, borrower,
-            actualRepayAmount);
-        if (bytes(errInfo).length == 0) {
+        (errInfo, seizeTokens) = comptroller.liquidateCalculateSeizeTokens(dToken, actualRepayAmount);
+        if (bytes(errInfo).length != 0) {
             return fail(errInfo);
         }
         DTokenInterface market = DTokenInterface(dToken);
         require(IERC20(dToken).balanceOf(borrower) >= seizeTokens, "liquidate seize too much");
         errInfo = market.seize(msg.sender, borrower, seizeTokens);
+        // revert if there are some effect at other contract
         require(bytes(errInfo).length == 0, errInfo);
         comptroller.liquidateBorrowVerify(dToken, msg.sender, borrower, actualRepayAmount, seizeTokens);
         emit LiquidateBorrow(msg.sender, borrower, actualRepayAmount, dToken, seizeTokens);
         return "";
     }
 
-    function getBorrows(address user) public view returns (uint){
+    function getBorrows(address user) public override view returns (uint){
         Exp memory globalIndex = Exp(borrowIndex);
         AccountBorrowSnapshot memory snapshot = accountBorrows[user];
         if (snapshot.index == 0) {
@@ -195,14 +201,27 @@ contract Borrows is BorrowsStorage, Exponential, ErrorReporter {
         return borrows;
     }
 
-    function reduceReserves(address recipient) public onlyComptroller returns (uint){
+    function isBorrowPool() public override pure returns (bool){
+        return true;
+    }
+
+    function _borrowIndex() public override view returns (uint){
+        return borrowIndex;
+    }
+
+    // return total borrows, is scalar
+    function _totalBorrows() external override view returns (uint){
+        return totalBorrows;
+    }
+
+    function reduceReserves(address recipient) public onlyComptroller override returns (uint){
         uint reserves = CFSC.balanceOf(address(this));
         require(CFSC.transfer(recipient, reserves), "reduce reserve failed");
         emit ReduceReserve(recipient, reserves);
         return reserves;
     }
 
-    function setReserveFactor(uint factor) public onlyComptroller {
+    function setReserveFactor(uint factor) public onlyComptroller override {
         uint oldFactor = reserveFactor;
         require(factor < mantissaOne, "illegal reserve factor");
         reserveFactor = factor;
@@ -216,7 +235,7 @@ contract Borrows is BorrowsStorage, Exponential, ErrorReporter {
         require(accrualBlock == 0 && borrowIndex == 0, "could only be initialized once");
         CFSC = cfsc;
         interestRateModel = _interestRateModel;
-        require(_comptroller.isComptroller(), "illegal comptroller");
+        require(_comptroller._isComptroller(), "illegal comptroller");
         comptroller = _comptroller;
         exchangePool = _exchangePool;
         oracle = _oracle;
@@ -235,7 +254,7 @@ contract Borrows is BorrowsStorage, Exponential, ErrorReporter {
 
     function setComptroller(ComptrollerInterface _comptroller) public onlyOwner {
         ComptrollerInterface oldComptroller = comptroller;
-        require(comptroller.isComptroller(), "illegal comptroller");
+        require(comptroller._isComptroller(), "illegal comptroller");
         comptroller = _comptroller;
         emit NewComptroller(oldComptroller, _comptroller);
     }

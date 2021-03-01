@@ -62,6 +62,7 @@ contract('Interface test', async (accounts) => {
         let newBorrowPool = await comptroller.borrowPool();
         assert.equal(newBorrowPool, borrowPool.address);
         await comptroller.setBorrowPool(BorrowsProxy.address);
+        borrowPool = await Borrows.at(BorrowsProxy.address);
         // check supply speed
         let suppleSpeed = web3.utils.toWei('1');
         await comptroller.setSupplySpeed(suppleSpeed);
@@ -104,7 +105,7 @@ contract('Interface test', async (accounts) => {
         await comptroller.setReserveFactor(reserveFactor);
         let newReserveFactor = await borrowPool.reserveFactor();
         assert.equal(reserveFactor, newReserveFactor);
-        await comptroller.setReserveFactor(reserveFactor);
+        await comptroller.setReserveFactor(web3.utils.toWei('0.2'));
     });
     it('oracle interface test', async () => {
         let oracle = await TestOracle.deployed();
@@ -133,7 +134,6 @@ contract('Interface test', async (accounts) => {
         let initCFSCBalance = await cfsc.balanceOf(accounts[0]);
         let initUSDCBalance = await usdc.balanceOf(accounts[0]);
         let initUSDTBalance = await usdt.balanceOf(accounts[0]);
-        console.log(initCFSCBalance.toString(), initUSDCBalance.toString(), initUSDTBalance.toString());
         let contractInitUSDCBalance = await usdc.balanceOf(exchangePool.address);
         let contractInitUSDTBalance = await usdt.balanceOf(exchangePool.address);
         usdc.approve(exchangePool.address, initUSDCBalance);
@@ -156,7 +156,6 @@ contract('Interface test', async (accounts) => {
         // because USDT price is more than $1
         assert.ok(initUSDTBalance - usdtBalance < exchangeAmount);
         let contractUSDTBalance = await usdt.balanceOf(exchangePool.address);
-        console.log('contract USDT balance: %d', contractUSDTBalance);
         assert.equal(contractUSDTBalance - contractInitUSDTBalance, initUSDTBalance - usdtBalance);
         cfscBalance = await cfsc.balanceOf(accounts[0]);
         assert.equal(cfscBalance - initCFSCBalance, exchangeCFSCAmount * 2);
@@ -314,10 +313,13 @@ contract('Interface test', async (accounts) => {
         let accountBorrows = await borrowPool.getBorrows(accounts[0]);
         let totalBorrows = await borrowPool.totalBorrows();
         let borrowIndex = await borrowPool.borrowIndex();
-        assert.equal(accountBorrows, totalBorrows);
+        assert.equal(accountBorrows.toString(), totalBorrows.toString());
         assert.ok(accountBorrows > initAccountBorrows);
         assert.ok(borrowIndex > initBorrowIndex);
         assert.ok(totalBorrows > initTotalBorrows);
+        let cfsc = await CycleStableCoin.deployed();
+        let cfscBalance = await cfsc.balanceOf(accounts[0]);
+        assert.equal(cfscBalance.toString(), borrowPrincipal.toString());
         // check other interface, so that block chain increase
         // set oracle and comptroller
         let newOracle = await TestOracle.new();
@@ -337,7 +339,85 @@ contract('Interface test', async (accounts) => {
         let usdtSupport = await borrowPool.supportedSC(USDT.address);
         assert.ok(usdcSupport);
         assert.ok(usdtSupport);
-        // TODO: repay
-        // TODO: liquidate
+        // use USDC to repay 1/3 borrows
+        accountBorrows = await borrowPool.getBorrows(accounts[0])
+        let repayAmount = accountBorrows.divn(new BN('3'));
+        let usdc = await USDC.deployed();
+        let usdcInitBalance = await usdc.balanceOf(accounts[0]);
+        await usdc.approve(borrowPool.address, repayAmount);
+        await borrowPool.repayBorrow(usdc.address, repayAmount);
+        accountBorrows = await borrowPool.getBorrows(accounts[0]);
+        let usdcAfterBalance = await usdc.balanceOf(accounts[0]);
+        // usdc price is $1, so repay 1000 * 10**6 / 3
+        let usdcRepayAmount = Math.floor(repayAmount / (10 ** 12));
+        assert.equal(usdcInitBalance - usdcAfterBalance, usdcRepayAmount);
+        // because there is one block to accrue interest
+        assert.ok(accountBorrows / 2 > repayAmount);
+        // use USDT to repay 1/3 borrows behalf
+        let usdt = await USDT.deployed();
+        await usdt.transfer(accounts[1], 10000 * (10 ** 6));
+        let usdtInitBalance = await usdt.balanceOf(accounts[1]);
+        await usdt.approve(borrowPool.address, repayAmount, {from: accounts[1]});
+        await borrowPool.repayBorrowBehalf(usdt.address, accounts[0], repayAmount, {from: accounts[1]});
+        accountBorrows = await borrowPool.getBorrows(accounts[0]);
+        let usdtAfterBalance = await usdt.balanceOf(accounts[1]);
+        // usdt price > $1 usdtInitBalance - usdtAfterBalance should less than usdcRepayAmount
+        // but usdt&usdc decimals is 6, is far less than 18
+        assert.ok(usdtInitBalance - usdtAfterBalance < usdcRepayAmount);
+        // because there is one block to accrue interest
+        assert.ok(accountBorrows > repayAmount);
+        // check exchange pool
+        let exchangePool = await ExchangePool.deployed();
+        let epUSDCBalance = await usdc.balanceOf(exchangePool.address);
+        let epUSDTBalance = await usdt.balanceOf(exchangePool.address);
+        assert.equal(usdcInitBalance - usdcAfterBalance, epUSDCBalance);
+        assert.equal(usdtInitBalance - usdtAfterBalance, epUSDTBalance);
+        // we change ether price to decrease account liquidity
+        await oracle.setPrice(zeroAddress, web3.utils.toWei('400'));
+        // make price change effect
+        await comptroller.refreshMarketDeposit();
+        let sysLiquidity = await comptroller.getSystemLiquidity();
+        assert.equal(sysLiquidity[1], 0);
+        assert.ok(sysLiquidity[2] > 0);
+        let accountLiquidity = await comptroller.getAccountLiquidity(accounts[0]);
+        totalBorrows = await borrowPool.totalBorrows();
+        accountBorrows = await borrowPool.getBorrows(accounts[0]);
+        // the method of accountBorrows calculation has some tiny precision errors
+        assert.ok(totalBorrows >= accountBorrows);
+        assert.equal(accountLiquidity[1], 0);
+        assert.ok(sysLiquidity[2] >= accountLiquidity[2]);
+        // liquidate, use USDT to repay borrow
+        let liquidateAmount = web3.utils.toWei('2600');
+        let borrowerDEtherAmount = dEther.balanceOf(accounts[0]);
+        let liquidatorDEtherAmount = dEther.balanceOf(accounts[1]);
+        await borrowPool.liquidateBorrow(usdt.address, dEther.address, accounts[0], liquidateAmount,
+            {from: accounts[1]});
+        let usdtBalanceAfterLiquidate = await usdt.balanceOf(accounts[1]);
+        let epUSDTBalanceAfterLiquidate = await usdt.balanceOf(exchangePool.address);
+        let accountBorrowsAfterLiquidate = await borrowPool.getBorrows(accounts[0]);
+        assert.equal((epUSDTBalanceAfterLiquidate - epUSDTBalance).toString(),
+            (usdtAfterBalance - usdtBalanceAfterLiquidate).toString());
+        assert.ok((usdtAfterBalance - usdtBalanceAfterLiquidate) <
+            (accountBorrows - accountBorrowsAfterLiquidate) / (10 ** 12));
+        sysLiquidity = await comptroller.getSystemLiquidity()
+        assert.ok(sysLiquidity[1] > 0);
+        assert.equal(sysLiquidity[2].toNumber(), 0);
+        accountLiquidity = await comptroller.getAccountLiquidity(accounts[0]);
+        assert.ok(sysLiquidity[1] >= accountLiquidity[1]);
+        assert.equal(accountLiquidity[2], 0);
+        // check dToken amount after liquidate
+        let borrowerDEtherAmountAfter = dEther.balanceOf(accounts[0]);
+        let liquidatorDEtherAmountAfter = dEther.balanceOf(accounts[1]);
+        assert.equal((borrowerDEtherAmount - borrowerDEtherAmountAfter).toString(),
+            (liquidatorDEtherAmountAfter - liquidatorDEtherAmount).toString());
+        // use CFSC repay whole borrows
+        let maxUint256 = web3.utils.toBN(2).pow(web3.utils.toBN(256)).sub(web3.utils.toBN(1));
+        cfsc.approve(borrowPool.address, maxUint256);
+        await borrowPool.repayBorrow(cfsc.address, maxUint256);
+        accountBorrows = await borrowPool.getBorrows(accounts[0]);
+        assert.equal(accountBorrows.toNumber(), 0);
+        accountLiquidity = await comptroller.getAccountLiquidity(accounts[0]);
+        assert.ok(accountLiquidity[1] > 0);
+        assert.equal(accountLiquidity[2], 0);
     });
 });

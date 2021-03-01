@@ -12,10 +12,10 @@ interface BorrowsInterface {
 
     function setReserveFactor(uint factor) external;
 
-    function borrowIndex() external view returns (uint);
+    function _borrowIndex() external view returns (uint);
 
     // return total borrows, is scalar
-    function totalBorrows() external view returns (uint);
+    function _totalBorrows() external view returns (uint);
 
     // return user latest borrows(after multiply latest borrowIndex), is scalar
     function getBorrows(address user) external view returns (uint);

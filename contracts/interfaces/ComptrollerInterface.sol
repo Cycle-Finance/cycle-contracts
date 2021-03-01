@@ -37,14 +37,16 @@ interface ComptrollerInterface {
     external;
 
     /* view interface*/
-    function isComptroller() external view returns (bool);
+    function _isComptroller() external view returns (bool);
 
-    function liquidateCalculateSeizeTokens(address dToken, address liquidator, address borrower, uint amount)
+    function liquidateCalculateSeizeTokens(address dToken, uint amount)
     external view returns (string memory, uint);
+
+    function getCurrentSystemLiquidity() external returns (uint, uint, uint);
+
+    function getSystemLiquidity() external view returns (uint, uint, uint);
 
     function getAccountLiquidity(address account) external view returns (uint, uint, uint);
 
-    function getAccountBorrowLimit(address account) external view returns (uint, uint);
-
-    function totalDeposit() external view returns (uint);
+    function _totalDeposit() external view returns (uint);
 }

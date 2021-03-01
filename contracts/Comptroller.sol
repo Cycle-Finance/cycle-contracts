@@ -8,6 +8,8 @@ import "./SafeERC20.sol";
 import "./interfaces/DTokenInterface.sol";
 import "./interfaces/ComptrollerInterface.sol";
 
+// If there are no deposit and borrows, the wing will not accumulate, and the distribution state will go ahead
+
 contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
 
     /* event */

@@ -6,12 +6,9 @@ const DERC20 = artifacts.require("DERC20");
 const DEther = artifacts.require("DEther");
 const ComptrollerProxy = artifacts.require("ComptrollerProxy");
 const BorrowsProxy = artifacts.require("BorrowsProxy");
-const dTokenProxy = artifacts.require("DTokenProxy");
 
-const SimpleInterestRateModel = artifacts.require("SimpleInterestRateModel");
 const ExchangePool = artifacts.require("ExchangePool");
 const CycleStableCoin = artifacts.require("CycleStableCoin");
-const CycleGovToken = artifacts.require("CycleToken");
 
 /* test only, will be replaced at maninnet*/
 const TestOracle = artifacts.require("TestOracle");

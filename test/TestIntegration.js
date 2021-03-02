@@ -54,22 +54,30 @@ contract('Integration test', async (accounts) => {
     });
     // we set cfgtSupplySpeed and cfgtBorrowSpeed so that system initialized
     it('set CFGT speed', async () => {
-        // 1 CFGT per block
-        let speed = web3.utils.toWei('1');
-        await comptroller.setSupplySpeed(speed);
-        await comptroller.setBorrowSpeed(speed);
     });
-    // deposit, should check cfgt supply index
-    it('accounts[0] deposit', async () => {
-        let refreshedBlockBefore = await comptroller.refreshedBlock();
-        // deposit ether
-        let accountCFGTBalanceBefore = await CFGT.balanceOf(accounts[0]);
-        let accountCFSCBalanceBefore = await CFSC.balanceOf(accounts[0]);
-        let interestIndexBefore = await comptroller.marketInterestIndex(dEther.address);
-        let supplyIndexBefore = await comptroller.supplyIndex(dEther.address);
+    // deposit
+    let compStateBefore, borrowPoolStateBefore, usersAssetStateBefore, marketsCompStateBefore,
+        marketUserCompStateBefore;
+    let comptrollerStateAfter, borrowPoolStateAfter, usersAssetStateAfter, marketsCompStateAfter,
+        marketUserCompStateAfter;
+    it('accounts[0] deposit 10 ETH', async () => {
+        compStateBefore = await comptrollerState();
+        borrowPoolStateBefore = await borrowPoolState();
+        usersAssetStateBefore[accounts[0]] = await accountAssetState(accounts[0]);
+        marketsCompStateBefore[dEther.address] = await marketCompState(dEther.address);
+        marketUserCompStateBefore[dEther.address][accounts[0]] = await marketUserCompState(dEther.address, accounts[0]);
         let etherAmount = web3.utils.toWei('10');
         await dEther.mint(etherAmount, {value: etherAmount});
-
+        comptrollerStateAfter = await comptrollerState();
+        borrowPoolStateAfter = await borrowPoolState();
+        usersAssetStateAfter[accounts[0]] = await accountAssetState(accounts[0]);
+        marketsCompStateAfter[dEther.address] = await marketCompState(dEther.address);
+        marketUserCompStateAfter[dEther.address][accounts[0]] = await marketUserCompState(dEther.address, accounts[0]);
+        // comptroller state change
+        // assert.equal(compStateBefore.);
+        // asset state change
+        assert.equal(usersAssetStateBefore.etherBalance - usersAssetStateAfter.etherBalance, etherAmount);
+        assert.equal(usersAssetStateBefore.dEtherBalance - usersAssetStateAfter.dEtherBalance, etherAmount);
     });
 });
 
@@ -154,7 +162,7 @@ async function accountAssetState(account) {
     };
 }
 
-async function marketComptrollerState(marketAddress) {
+async function marketCompState(marketAddress) {
     let marketDeposit = await comptroller.marketDeposit(marketAddress);
     let marketInterestIndex = await comptroller.marketInterestIndex(marketAddress);
     let supplyIndex = await comptroller.supplyIndex(marketAddress);
@@ -169,7 +177,7 @@ async function marketComptrollerState(marketAddress) {
     };
 }
 
-async function marketAccountComptrollerState(marketAddress, account) {
+async function marketUserCompState(marketAddress, account) {
     let userInterestIndex = await comptroller.userInterestIndex(marketAddress, account);
     let supplierIndex = await comptroller.supplierIndex(marketAddress, account);
     let borrowerIndex = await comptroller.borrowerIndex(marketAddress, account);

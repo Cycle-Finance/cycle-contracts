@@ -20,6 +20,7 @@ contract Borrows is BorrowsStorage, BorrowsInterface, Exponential, ErrorReporter
 
     event ReduceReserve(address recipient, uint amount);
     event NewReserveFactor(uint oldFactor, uint newFactor);
+    event NewInterestRateModel(InterestRateModel oldModel, InterestRateModel newModel);
 
     event NewOracle(IOracle oldOracle, IOracle newOracle);
     event NewComptroller(ComptrollerInterface oldComptroller, ComptrollerInterface newComptroller);
@@ -226,6 +227,14 @@ contract Borrows is BorrowsStorage, BorrowsInterface, Exponential, ErrorReporter
         require(factor < mantissaOne, "illegal reserve factor");
         reserveFactor = factor;
         emit NewReserveFactor(oldFactor, factor);
+    }
+
+    function setInterestRateModel(address _interestRateModel) public onlyComptroller override {
+        InterestRateModel oldModel = interestRateModel;
+        InterestRateModel newModel = InterestRateModel(_interestRateModel);
+        require(newModel.isInterestRateModel(), "illegal interest rate model");
+        interestRateModel = newModel;
+        emit NewInterestRateModel(oldModel, newModel);
     }
 
     /* admin function */

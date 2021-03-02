@@ -12,6 +12,8 @@ interface BorrowsInterface {
 
     function setReserveFactor(uint factor) external;
 
+    function setInterestRateModel(address _interestRateModel) external;
+
     function _borrowIndex() external view returns (uint);
 
     // return total borrows, is scalar

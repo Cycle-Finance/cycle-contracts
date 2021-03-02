@@ -485,6 +485,11 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
         borrowPool.setReserveFactor(factor);
     }
 
+    function setInterestRateModel(address interestRateModel) public onlyOwner {
+        refreshMarketDeposit();
+        borrowPool.setInterestRateModel(interestRateModel);
+    }
+
     function setPublicBorrower(address newBorrower) public onlyOwner {
         address oldBorrower = publicBorrower;
         uint publicBorrows = borrowPool.getBorrows(oldBorrower);

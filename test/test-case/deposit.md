@@ -2,118 +2,69 @@
 
 ## deposit-1
 
-Description:
-- user deposit 10 ETH;
+deposit 10 ETH.
 
-Preconditions:
-- None;
-
-Param: market = dEther, user = accounts[0]
-
-Action(market, user):
-- market.mint(10ETH,{from: user});
-
-Expected Results():
-- Comptroller state change:
-  - refreshedBlock > before;
-  - totalDeposit > before;
-  - marketDeposit[market] > before;
-  - marketInterestIndex[market] >= before;
-  - userInterestIndex[market][user] >= before;
-  - supplyIndex[market] >= before;
-  - supplierIndex[market][user] >= before;
-  - userAccrued[accounts[0]] == 0 or >= before;
-  - getSystemLiquidity()[1] >= before && getSystemLiquidity()[2] <= before;
-  - getAccountLiquidity(user)[1] >= before && getAccountLiquidity(user)[2] <= before;
-- User asset state change:
-  - ETH.balanceOf(user) < before;
-  - market.balanceOf([user]) > before;
-  - CFGT.balanceOf(user)>= before;
-  - CFSC.balanceOf(user)>= before;
-- Borrow state change:
-  - borrowIndex > before;
-  - accrualBlock > before;
-  - totalBorrows >= before;
-  - getBorrows(user) >= before;
+- [SimpleDeposit](./test-function.md#SimpleDeposit)(dEther, accounts[0], 10 ETH)
 
 ## deposit-2
 
-Description:
-- deposit 10 WBTC
+deposit 10 WBTC
 
-market=dWBTC, the others is same as [deposit-1](#deposit-1).
+- [SimpleDeposit](./test-function.md#SimpleDeposit)(dEther, accounts[0], 10 WBTC)
 
 ## deposit-3
 
-Description:
-- deposit 1000 USDC
+deposit 1000 USDC
 
-market=dUSDC, the others is same as [deposit-1](#deposit-1).
+- [SimpleDeposit](./test-function.md#SimpleDeposit)(dEther, accounts[0], 1000 USDC)
 
 ## deposit-4
 
-Description:
-- deposit 1000 USDT
+deposit 1000 USDT
 
-market=dUSDT, the others is same as [deposit-1](#deposit-1).
+- [SimpleDeposit](./test-function.md#SimpleDeposit)(dEther, accounts[0], 1000 USDT)
 
 ## deposit-5
 
-Description:
-- If the user has the same deposit in a single market, the interest and supplierCFGT reword in that market should also be the same. 
+If the user has the same deposit in market, the interest and supplierCFGT reword should also be the same. 
 
-Preconditions:
-- [deposit-1](#deposit-1);
-- [deposit-2](#deposit-2);
-- [deposit-3](#deposit-3);
-- [deposit-4](#deposit-4);
+### deposit-5-1
 
-Param: market = dEther, user1 = accounts[0], user2 = accounts[1]
+single market deposit
 
-Action(market, user1, user2):
-- market.mint(10ETH,{from: user1})
-- comptroller.claimInterest(allMarkets, [user1, user2]);
-- comptroller.claimSupplierCFGT(allMarkets, [user1, user2]);
-- snapshot user1 asset state as snapshot1;
-- snapshot user2 asset state as snapshot2;
-- comptroller.refreshMarketDeposit();
-- comptroller.claimInterest([market], [user1, user2]);
-- comptroller.claimSupplierCFGT([market], [user1, user2]);
+- [SimpleDeposit](./test-function.md#SimpleDeposit)(dEther, accounts[0], 10 ETH)
+- [SimpleDeposit](./test-function.md#SimpleDeposit)(dEther, accounts[1], 10 ETH)
+- [interestGap, supplierCFGTGap, _] = [CompareMarketProfit](./test-function.md#CompareMarketProfit)(dEther, accounts[0], accounts[1], 10);
+  - interestGap == 0;
+  - supplierCFGT == 0;
 
-Expected Results:
-- User asset state change:
-  - CFSC.balanceOf(user1) - snapshot1.cfscBalance == CFSC.balanceOf(user2) - snapshot2.cfscBalance;
-  - CFGT.balanceOf(user1) - snapshot1.cfgtBalance == CFGT.balanceOf(user2) - snapshot2.cfgtBalance;
+### deposit-5-2
 
->note: other state is negligible.
+all market deposit
 
->note: it may be necessary to implement this case in all other markets.
+- [SimpleDeposit](./test-function.md#SimpleDeposit)(dEther, accounts[0], 10 ETH)
+- [SimpleDeposit](./test-function.md#SimpleDeposit)(dEther, accounts[1], 10 ETH)
+- [interestGap, supplierCFGTGap, _] = [CompareMarketProfit](./test-function.md#CompareMarketProfit)(dEther, accounts[0], accounts[1], 10);
+  - interestGap == 0;
+  - supplierCFGT == 0;
+- [SimpleDeposit](./test-function.md#SimpleDeposit)(dWBTC, accounts[0], 10 WBTC)
+- [SimpleDeposit](./test-function.md#SimpleDeposit)(dWBTC, accounts[1], 5 WBTC)
+- [interestGap, supplierCFGTGap, _] = [CompareMarketProfit](./test-function.md#CompareMarketProfit)(dWBTC, accounts[0], accounts[1], 10);
+  - interestGap > 0;
+  - supplierCFGT > 0;
+- [SimpleDeposit](./test-function.md#SimpleDeposit)(dUSDC, accounts[0], 1000 USDC)
+- [SimpleDeposit](./test-function.md#SimpleDeposit)(dUSDC, accounts[1], 1000 USDC)
+- [interestGap, supplierCFGTGap, _] = [CompareMarketProfit](./test-function.md#CompareMarketProfit)(dUSDC, accounts[0], accounts[1], 10);
+  - interestGap == 0;
+  - supplierCFGT == 0;
+- [SimpleDeposit](./test-function.md#SimpleDeposit)(dUSDT, accounts[0], 1000 USDT)
+- [SimpleDeposit](./test-function.md#SimpleDeposit)(dUSDT, accounts[1], 1500 USDT)
+- [interestGap, supplierCFGTGap, _] = [CompareMarketProfit](./test-function.md#CompareMarketProfit)(dUSDT, accounts[0], accounts[1], 10);
+  - interestGap < 0;
+  - supplierCFGT < 0;
 
 ## deposit-6
 
 Description:
-- If the user has the same deposit, the interest and supplierCFGT reword should also be the same.
+- deposit should fail when mint paused.
 
-Preconditions:
-- [deposit-1](#deposit-1);
-- [deposit-2](#deposit-2);
-- [deposit-3](#deposit-3);
-- [deposit-4](#deposit-4);
-- [deposit-1](#deposit-1)(user=accounts[1]);
-- [deposit-2](#deposit-2)(user=accounts[1]);
-- [deposit-3](#deposit-3)(user=accounts[1]);
-- [deposit-4](#deposit-4)(user=accounts[1]);
-
-Action(user1, user2):
-- comptroller.claimInterest(allMarkets, [user1, user2]);
-- comptroller.claimSupplierCFGT(allMarkets, [user1, user2]);
-- snapshot user1 asset state as snapshot1;
-- snapshot user2 asset state as snapshot2;
-- comptroller.refreshMarketDeposit();
-- comptroller.claimInterest(allMarkets, [user1, user2]);
-- comptroller.claimSupplierCFGT(allMarkets, [user1, user2]);
-
-Expected Results:
-- User asset state change:
-  - CFSC.balanceOf(user1) - snapshot1.cfscBalance == CFSC.balanceOf(user2) - snapshot2.cfscBalance;
-  - CFGT.balanceOf(user1) - snapshot1.cfgtBalance == CFGT.balanceOf(user2) - snapshot2.cfgtBalance;

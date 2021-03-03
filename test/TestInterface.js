@@ -61,13 +61,13 @@ contract('Interface test', async (accounts) => {
         await comptroller.setBorrowPool(BorrowsProxy.address);
         borrowPool = await Borrows.at(BorrowsProxy.address);
         // check supply speed
-        let suppleSpeed = web3.utils.toWei('1');
-        await comptroller.setSupplySpeed(suppleSpeed);
+        let supplySpeed = web3.utils.toWei('1');
+        await comptroller.setSupplySpeed(supplySpeed);
         let newSupplySpeed = await comptroller.supplySpeed();
-        assert.equal(newSupplySpeed, suppleSpeed);
+        assert.equal(newSupplySpeed, supplySpeed);
         await comptroller.setSupplySpeed(0);
         // check borrow speed
-        let borrowSpeed = suppleSpeed;
+        let borrowSpeed = supplySpeed;
         await comptroller.setBorrowSpeed(borrowSpeed);
         let newBorrowSpeed = await comptroller.borrowSpeed();
         assert.equal(borrowSpeed, newBorrowSpeed);
@@ -416,5 +416,19 @@ contract('Interface test', async (accounts) => {
         accountLiquidity = await comptroller.getAccountLiquidity(accounts[0]);
         assert.ok(accountLiquidity[1] > 0);
         assert.equal(accountLiquidity[2], 0);
+    });
+    it('claim profit from comptroller', async () => {
+        let comptroller = await Comptroller.at(ComptrollerProxy.address);
+        let users = [accounts[0], accounts[1]];
+        let markets = [
+            await comptroller.markets(0),
+            await comptroller.markets(1),
+            await comptroller.markets(2),
+            await comptroller.markets(3),
+        ];
+        await comptroller.claimAllProfit(users);
+        await comptroller.claimInterest(markets, users);
+        await comptroller.claimSupplierCFGT(markets, users);
+        await comptroller.claimBorrowerCFGT(users);
     });
 });

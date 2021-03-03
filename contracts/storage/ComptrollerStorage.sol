@@ -43,9 +43,9 @@ contract ComptrollerStorage is Ownable {
     // distribute CFGT to borrower
     uint public borrowDistributedBlock;
     uint public borrowIndex;
-    mapping(address => uint) borrowerIndex;
+    mapping(address => uint) public borrowerIndex;
     // user accrued CFGT
-    mapping(address => uint) userAccrued;
+    mapping(address => uint) public userAccrued;
     // CFGT distribution speed
     uint public supplySpeed;
     uint public borrowSpeed;

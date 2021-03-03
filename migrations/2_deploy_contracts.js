@@ -60,10 +60,6 @@ module.exports = async function (depolyer) {
     // initialize comptroller
     let comptroller = await Comptroller.at(ComptrollerProxy.address);
     await comptroller.initialize(CycleStableCoin.address, CycleGovToken.address, BorrowsProxy.address);
-    // 10 CFGT per block
-    let speed = web3.utils.toWei('10');
-    await comptroller.setSupplySpeed(speed);
-    await comptroller.setBorrowSpeed(speed);
     // initialize borrow pool, 20% reserve
     let borrowPool = await Borrows.at(BorrowsProxy.address);
     await borrowPool.initialize(CycleStableCoin.address, SimpleInterestRateModel.address, ComptrollerProxy.address,
@@ -94,4 +90,8 @@ module.exports = async function (depolyer) {
     await exchangePool.setCFSC(cfsc.address);
     await exchangePool.setSupportedAsset(USDT.address, true);
     await exchangePool.setSupportedAsset(USDC.address, true);
+    // set CFGT distribution speed, 10 CFGT per block
+    let speed = web3.utils.toWei('10');
+    await comptroller.setSupplySpeed(speed);
+    await comptroller.setBorrowSpeed(speed);
 }

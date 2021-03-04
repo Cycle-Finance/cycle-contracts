@@ -23,10 +23,9 @@ Case Type: deposit/withdraw/borrow/repayBorrow/liquidateBorrow/modifySystemConfi
 
 >note: All test cases use the default configuration unless specifically stated in the precondition.
 
-We define test function that consist of 6 attributes:
+We define test function that consist of 4 attributes:
 - param: function param, used to specify user, dToken and amount;
 - description: describe what function does;
-- precondition: other test function;
 - action: contract invoke;
 - expected results: the system state change caused by action;
   - We will check whether the change of system state is consistent with expected results, if not, the case if failed.

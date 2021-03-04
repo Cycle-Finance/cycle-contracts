@@ -450,6 +450,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
         borrowPool = _borrowPool;
         borrowIndex = doubleScale;
         refreshedBlock = block.number;
+        borrowDistributedBlock = block.number;
     }
 
     function registerMarket(address market, uint _collateralFactor) public onlyOwner {

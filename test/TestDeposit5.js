@@ -92,7 +92,6 @@ contract('deposit test case 5', async (accounts) => {
         await deposit.simpleDeposit(ctx, ctx.dWBTC, accounts[1], wbtcAmount);
         let comparedResults = await utils.compareMarketProfit(ctx, ctx.dWBTC, accounts[0], accounts[1], 1);
         // interest gap should == 0
-        console.log(comparedResults);
         assert.ok(comparedResults[0].toNumber() === 0);
         // supplier CFGT gap should > 0
         assert.ok(comparedResults[1] > 0);
@@ -102,7 +101,6 @@ contract('deposit test case 5', async (accounts) => {
         await deposit.simpleDeposit(ctx, ctx.dUSDC, accounts[1], usdcAmount);
         comparedResults = await utils.compareMarketProfit(ctx, ctx.dUSDC, accounts[0], accounts[1], 1);
         // interest gap should == 0
-        console.log(comparedResults);
         assert.ok(comparedResults[0].toNumber() === 0);
         // supplier CFGT gap should == 0
         assert.ok(comparedResults[1].toNumber() === 0);
@@ -112,7 +110,6 @@ contract('deposit test case 5', async (accounts) => {
         await deposit.simpleDeposit(ctx, ctx.dUSDT, accounts[1], usdtAmount);
         comparedResults = await utils.compareMarketProfit(ctx, ctx.dUSDT, accounts[0], accounts[1], 1);
         // interest gap should == 0
-        console.log(comparedResults);
         assert.ok(comparedResults[0].toNumber() === 0);
         // supplier CFGT gap should < 0
         assert.ok(comparedResults[1] < 0);

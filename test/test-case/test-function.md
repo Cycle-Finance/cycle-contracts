@@ -1,14 +1,13 @@
 # Integration Test —— Test Function
 
-## SimpleDeposit
+## Deposit
+
+### SimpleDeposit
 
 Description:
 - user deposit simply;
 
 Param: (market, user, amount)
-
-Preconditions:
-- None;
 
 Action:
 - market.mint(amount,{from: user});
@@ -26,7 +25,7 @@ Expected Results:
   - getSystemLiquidity()[1] >= before && getSystemLiquidity()[2] <= before;
   - getAccountLiquidity(user)[1] >= before && getAccountLiquidity(user)[2] <= before;
 - User asset state change:
-  - ETH.balanceOf(user) < before;
+  - market.underlying.balanceOf(user) < before;
   - market.balanceOf([user]) > before;
   - CFGT.balanceOf(user)>= before;
   - CFSC.balanceOf(user)>= before;
@@ -36,15 +35,12 @@ Expected Results:
   - totalBorrows >= before;
   - getBorrows(user) >= before;
 
-## RevertDeposit
+### RevertDeposit
 
 Description:
-- Deposit would panic at sometime;
+- Deposit sometimes panic;
 
 Param: (market, user, amount)
-
-Preconditions:
-- None;
 
 Action:
 - tx = market.mint(amount,{from: user});
@@ -54,15 +50,12 @@ Expected Results:
 
 >note: we use `try-catch` to handle this case
 
-## FailDeposit
+### FailDeposit
 
 Description:
 - for various reasons, deposits may fail;
 
 Param: (market, user, amount, reason)
-
-Preconditions:
-- None;
 
 Action:
 - tx = market.mint(amount,{from: user});
@@ -70,15 +63,102 @@ Action:
 Expected Results:
 - tx.logs.contain(reason);
 
+## Withdraw
+
+### SimpleWithdraw
+
+Description:
+- withdraw some asset from specified market
+- **withdraw should receive CFGT if supplySpeed > 0**
+
+Param: (market, user, amount)
+
+Action:
+- market.redeem(amount, {from: user});
+
+Expected Results:
+- Comptroller state change:
+  - refreshedBlock > before;
+  - totalDeposit == before - market.tokenValue(amount);
+  - marketDeposit[market] == before - market.tokenValue(amount);
+  - marketInterestIndex[market] >= before;
+  - userInterestIndex[market][user] >= before;
+  - supplyIndex[market] >= before;
+  - supplierIndex[market][user] >= before;
+  - userAccrued[accounts[0]] == 0 or >= before;
+  - getSystemLiquidity()[1] <= before && getSystemLiquidity()[2] >= before;
+  - getAccountLiquidity(user)[1] <= before && getAccountLiquidity(user)[2] >= before;
+- User asset state change:
+  - market.underlying.balanceOf(user) > before;
+  - market.balanceOf(user) < before;
+  - CFGT.balanceOf(user)>= before;
+  - CFSC.balanceOf(user)>= before;
+- Borrow state change:
+  - borrowIndex > before;
+  - accrualBlock > before;
+  - totalBorrows >= before;
+  - getBorrows(user) >= before;
+
+### RevertWithdraw
+
+like [RevertDeposit](#RevertDeposit)
+
+### FailWithdraw
+
+like [FailDeposit](#FailDeposit)
+
+## Borrow
+
+### SimpleBorrow
+
+Description:
+- borrow CFSC
+
+Param: (user, amount)
+
+Action:
+- borrowPool.borrow(amount, {from: user})
+
+Expected Results:
+- Comptroller state change:
+  - refreshedBlock > before;
+  - totalDeposit == before;
+  - marketDeposit[market] == before;
+  - marketInterestIndex[market] >= before;
+  - userInterestIndex[market][user] >= before;
+  - supplyIndex[market] >= before;
+  - supplierIndex[market][user] >= before;
+  - userAccrued[accounts[0]] == 0 or >= before;
+  - getSystemLiquidity()[1] <= before && getSystemLiquidity()[2] >= before;
+  - getAccountLiquidity(user)[1] <= before && getAccountLiquidity(user)[2] >= before;
+  - borrowDistributedBlock > before;
+  - borrowIndex >= before;
+  - borrowerIndex >= before
+- User asset state change:
+  - market.underlying.balanceOf(user) > before;
+  - market.balanceOf(user) < before;
+  - CFGT.balanceOf(user)>= before;
+  - CFSC.balanceOf(user)>= before;
+- Borrow state change:
+  - borrowIndex > before;
+  - accrualBlock > before;
+  - totalBorrows >= before;
+  - getBorrows(user) >= before;
+
+### RevertBorrow
+
+like [RevertDeposit](#RevertDeposit)
+
+### FailBorrow
+
+like [FailDeposit](#FailDeposit)
+
 ## CompareMarketProfit
 
 Description:
 - compare the profit of two users between the specified number of blocks at the market.
 
 Param: (market, user1, user2, blockNum)
-
-Preconditions:
-- None;
 
 Action:
 - comptroller.claimAllProfit([user1, user2]);

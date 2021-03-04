@@ -13,6 +13,7 @@ contract ComptrollerStorage is Ownable {
     address public CFGT;
 
     /// @notice this should be DAF contract address
+    /// @notice can also own CFGT borrows distribution
     address public publicBorrower;
 
     // supported dToken markets
@@ -54,7 +55,7 @@ contract ComptrollerStorage is Ownable {
     // asset collateral factor, is exponential
     mapping(address => uint) public collateralFactor;
     /// @notice totalDeposit * systemCollateralFactor >= totalBorrows
-    uint public systemUtilizationRate = 75 * (10 ** 16);
+    uint public systemUtilizationRate = 90 * (10 ** 16);
     /// @notice multiplier used to calculate the maximum repayAmount when liquidating a borrow
     uint public maxCloseFactor = 80 * (10 ** 16);
     /// @notice multiplier representing the discount on collateral that a liquidator receives

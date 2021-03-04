@@ -2,8 +2,6 @@ const context = require('./context');
 
 let zeroAddress = '0x0000000000000000000000000000000000000000';
 
-// TODO: exactly interest and CFGT distribution
-
 async function simpleDeposit(ctx, market, user, amount) {
     let comptrollerStateBefore = await context.comptrollerState(ctx, market, user);
     let borrowPoolStateBefore = await context.borrowPoolState(ctx, user);
@@ -42,9 +40,7 @@ async function simpleDeposit(ctx, market, user, amount) {
     assert.ok((userBalanceStateAfter.dTokenBalance.sub(bnAmount)).toString(),
         userBalanceStateBefore.dTokenBalance);
     assert.ok(userBalanceStateAfter.cfgtBalance >= userBalanceStateBefore.cfgtBalance);
-    console.log('distribute %s CFGT to user', userBalanceStateAfter.cfgtBalance.sub(userBalanceStateBefore.cfgtBalance));
     assert.ok(userBalanceStateAfter.cfscBalance >= userBalanceStateBefore.cfscBalance);
-    console.log('distribute %s CFSC to user', userBalanceStateAfter.cfscBalance.sub(userBalanceStateBefore.cfscBalance));
     // check borrow state change
     assert.ok(borrowPoolStateAfter.borrowIndex > borrowPoolStateBefore.borrowIndex);
     assert.ok(borrowPoolStateAfter.accrualBlock > borrowPoolStateBefore.accrualBlock);

@@ -66,5 +66,5 @@ all market deposit
 ## deposit-6
 
 Description:
-- deposit should fail when mint paused.
+- deposit should revert when mint paused.
 

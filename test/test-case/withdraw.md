@@ -123,6 +123,54 @@ withdraw 10 ETH (equals user deposit, should fail)
 
 ### withdraw-4-3
 
+withdraw asset from other market
+
+- [FailWithdraw](./test-function.md#FailWithdraw)(dEther, accounts[0], 10 USDT, "calculate account liquidity failed")
+
+### withdraw-4-4
+
+withdraw 4 ETH, in this way, the liquidity of the system is met, but the liquidity requirement of the account is not met
+
+- [FailWithdraw](./test-function.md#FailWithdraw)(dEther, accounts[0], 4 ETH, "insufficient liquidity")
+
+### withdraw-4-5
+
 withdraw 1 ETH (less than user deposit, should success)
 
 - [SimpleWithdraw](./test-function.md#SimpleWithdraw)(dEther, accounts[0], 1 ETH)
+
+## withdraw-5
+
+we use the same account at above test, now we use another account withdraw asset. It doesn't matter whether the system
+borrows money or not.
+
+### beforeAll
+
+deposit 10 ETH and then borrow 10000 CFSC, so the remained liquidity  ~= 9000*0.9 = 8100 CFSC approximately.
+
+- [SimpleDeposit](./test-function.md#SimpleDeposit)(dEther, accounts[0], 10 ETH);
+- [SimpleBorrow](./test-function.md#SimpleBorrow)(dEther, accounts[0], 10000 CFSC);
+
+### withdraw-5-1
+
+accounts[1] withdraw large amount
+
+- [FailWithdraw](./test-function.md#FailWithdraw)(dEther, accounts[1], 100 ETH, "calculate system liquidity failed")
+
+### withdraw-5-2
+
+accounts[1] withdraw middle amount
+
+- [FailWithdraw](./test-function.md#FailWithdraw)(dEther, accounts[1], 10 ETH, "insufficient system liquidity")
+
+### withdraw-5-3
+
+accounts[1] withdraw middle amount at other assets
+
+- [FailWithdraw](./test-function.md#FailWithdraw)(dEther, accounts[1], 1000 USDT, "calculate account liquidity failed")
+
+## withdraw-6
+
+if account withdraw 0, in any case, the withdrawal will be successful
+
+So these cases just need to change the amount param of failed cases to zero and operate those case again.

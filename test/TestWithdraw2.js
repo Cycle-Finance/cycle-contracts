@@ -76,17 +76,21 @@ contract('withdraw test case 2', async (accounts) => {
     it('withdraw-2-1', async () => {
         let amount = web3.utils.toWei('10');
         await withdraw.failWithdraw(ctx, ctx.dEther, accounts[0], amount, reason);
+        await withdraw.simpleWithdraw(ctx, ctx.dEther, accounts[0], 0);
     });
     it('withdraw-2-2', async () => {
         let amount = 10 * (10 ** 8);
         await withdraw.failWithdraw(ctx, ctx.dWBTC, accounts[0], amount, reason);
+        await withdraw.simpleWithdraw(ctx, ctx.dWBTC, accounts[0], 0);
     });
     it('withdraw-2-3', async () => {
         let amount = 10 * (10 ** 6);
         await withdraw.failWithdraw(ctx, ctx.dUSDC, accounts[0], amount, reason);
+        await withdraw.simpleWithdraw(ctx, ctx.dUSDC, accounts[0], 0);
     });
     it('withdraw-2-4', async () => {
         let amount = 10 * (10 ** 6);
         await withdraw.failWithdraw(ctx, ctx.dUSDT, accounts[0], amount, reason);
+        await withdraw.simpleWithdraw(ctx, ctx.dUSDT, accounts[0], 0);
     });
 });

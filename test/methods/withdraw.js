@@ -42,9 +42,11 @@ async function simpleWithdraw(ctx, market, user, amount) {
     assert.ok(borrowPoolStateAfter.userBorrows.cmp(borrowPoolStateBefore.userBorrows) >= 0);
     /* we check profit after withdrawal */
     // distribute supply CFGT
-    let distributeCFGT = comptrollerStateBefore.supplySpeed.cmpn(0) > 0;
+    let distributeCFGT = comptrollerStateBefore.supplySpeed.cmpn(0) > 0
+        && userBalanceStateBefore.dTokenBalance.cmpn(0) > 0;
     // distribute interest
-    let distributeCFSC = borrowPoolStateBefore.totalBorrows.cmpn(0) > 0;
+    let distributeCFSC = borrowPoolStateBefore.totalBorrows.cmpn(0) > 0
+        && userBalanceStateBefore.dTokenBalance.cmpn(0) > 0;
     if (distributeCFGT) {
         if (comptrollerStateAfter.userAccrued.toString() === "0") {
             assert.ok(userBalanceStateAfter.cfgtBalance.cmp(userBalanceStateBefore.cfgtBalance) > 0);

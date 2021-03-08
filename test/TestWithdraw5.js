@@ -23,7 +23,7 @@ const withdraw = require('./methods/withdraw');
 const deposit = require('./methods/deposit');
 const borrow = require('./methods/borrow');
 
-contract('withdraw test case 4', async (accounts) => {
+contract('withdraw test case 5', async (accounts) => {
     let ctx;
     before(async () => {
         let wbtc = await WBTC.deployed();
@@ -77,29 +77,19 @@ contract('withdraw test case 4', async (accounts) => {
         let borrowAmount = web3.utils.toWei('10000');
         await borrow.simpleBorrow(ctx, ctx.dEther, accounts[0], borrowAmount);
     });
-    it('withdraw-4-1', async () => {
+    it('withdraw-5-1', async () => {
         let amount = web3.utils.toWei('100');
-        await withdraw.failWithdraw(ctx, ctx.dEther, accounts[0], amount, "calculate system liquidity failed");
-        await withdraw.simpleWithdraw(ctx, ctx.dEther, accounts[0], 0)
+        await withdraw.failWithdraw(ctx, ctx.dEther, accounts[1], amount, "calculate system liquidity failed");
+        await withdraw.simpleWithdraw(ctx, ctx.dEther, accounts[1], 0)
     });
-    it('withdraw-4-2', async () => {
+    it('withdraw-5-2', async () => {
         let amount = web3.utils.toWei('10');
-        await withdraw.failWithdraw(ctx, ctx.dEther, accounts[0], amount, "insufficient system liquidity");
-        await withdraw.simpleWithdraw(ctx, ctx.dEther, accounts[0], 0)
+        await withdraw.failWithdraw(ctx, ctx.dEther, accounts[1], amount, "insufficient system liquidity");
+        await withdraw.simpleWithdraw(ctx, ctx.dEther, accounts[1], 0)
     });
-    it('withdraw-4-3', async () => {
-        let amount = 10 * (10 ** 6);
-        await withdraw.failWithdraw(ctx, ctx.dUSDT, accounts[0], amount, "calculate account liquidity failed");
-        await withdraw.simpleWithdraw(ctx, ctx.dUSDT, accounts[0], 0)
-    });
-    it('withdraw-4-4', async () => {
-        let amount = web3.utils.toWei('4');
-        await withdraw.failWithdraw(ctx, ctx.dEther, accounts[0], amount, "insufficient liquidity");
-        await withdraw.simpleWithdraw(ctx, ctx.dEther, accounts[0], 0)
-    });
-    it('withdraw-4-5', async () => {
-        let amount = web3.utils.toWei('1');
-        await withdraw.simpleWithdraw(ctx, ctx.dEther, accounts[0], amount);
-        await withdraw.simpleWithdraw(ctx, ctx.dEther, accounts[0], 0)
+    it('withdraw-5-3', async () => {
+        let amount = 1000 * (10 ** 6);
+        await withdraw.failWithdraw(ctx, ctx.dUSDT, accounts[1], amount, "calculate account liquidity failed");
+        await withdraw.simpleWithdraw(ctx, ctx.dEther, accounts[1], 0)
     });
 });

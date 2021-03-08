@@ -54,6 +54,9 @@ abstract contract DToken is DTokenStorage, Exponential {
         if (bytes(errMsg).length != 0) {
             return fail(errMsg);
         }
+        if (redeemAmount > balanceOf(msg.sender)) {
+            return "insufficient dToken balance";
+        }
         _burn(msg.sender, redeemAmount);
         transferOut(msg.sender, redeemAmount);
         comptroller.redeemVerify(address(this), msg.sender, redeemAmount);

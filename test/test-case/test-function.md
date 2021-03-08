@@ -129,7 +129,6 @@ Description:
 
 - borrow CFSC
 - if supplySpeed > 0, borrower supply CFGT index should increase
-- user interest index should increase
 
 Param: ({market}, user, amount)
 
@@ -153,7 +152,7 @@ Expected Results:
     - userAccrued[accounts[0]] == 0 or >= before;
     - getSystemLiquidity()[1] <= before && getSystemLiquidity()[2] >= before;
     - getAccountLiquidity(user)[1] <= before && getAccountLiquidity(user)[2] >= before;
-    - borrowDistributedBlock > before;
+    - borrowDistributedBlock >= before;
     - borrowIndex >= before;
     - borrowerIndex >= before
 - User asset state change:

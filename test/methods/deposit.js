@@ -14,38 +14,38 @@ async function simpleDeposit(ctx, market, user, amount) {
     let userBalanceStateAfter = await context.userBalanceState(ctx, market, user);
     // check comptroller state change
     let tokenValue = await market.tokenValue(amount);
-    assert.ok(comptrollerStateAfter.refreshedBlock > comptrollerStateBefore.refreshedBlock);
+    assert.ok(comptrollerStateAfter.refreshedBlock.cmp(comptrollerStateBefore.refreshedBlock) === 1);
     assert.equal((comptrollerStateBefore.totalDeposit.add(tokenValue)).toString(),
         comptrollerStateAfter.totalDeposit.toString());
     assert.equal((comptrollerStateBefore.marketDeposit.add(tokenValue)).toString(),
         comptrollerStateAfter.marketDeposit.toString());
-    assert.ok(comptrollerStateAfter.marketInterestIndex >= comptrollerStateBefore.marketInterestIndex);
-    assert.ok(comptrollerStateAfter.userInterestIndex >= comptrollerStateBefore.userInterestIndex);
-    assert.ok(comptrollerStateAfter.supplyIndex >= comptrollerStateBefore.supplyIndex);
-    assert.ok(comptrollerStateAfter.supplierIndex >= comptrollerStateBefore.supplierIndex);
-    assert.ok(comptrollerStateAfter.userAccrued.toString() === ""
-        || comptrollerStateAfter.userAccrued >= comptrollerStateBefore.userAccrued);
+    assert.ok(comptrollerStateAfter.marketInterestIndex.cmp(comptrollerStateBefore.marketInterestIndex) >= 0);
+    assert.ok(comptrollerStateAfter.userInterestIndex.cmp(comptrollerStateBefore.userInterestIndex) >= 0);
+    assert.ok(comptrollerStateAfter.supplyIndex.cmp(comptrollerStateBefore.supplyIndex) >= 0);
+    assert.ok(comptrollerStateAfter.supplierIndex.cmp(comptrollerStateBefore.supplierIndex) >= 0);
+    assert.ok(comptrollerStateAfter.userAccrued.toString() === "0"
+        || comptrollerStateAfter.userAccrued.cmp(comptrollerStateBefore.userAccrued) >= 0);
     let systemLiquidityBefore = comptrollerStateBefore.systemLiquidity;
     let systemLiquidityAfter = comptrollerStateAfter.systemLiquidity;
     let userLiquidityBefore = comptrollerStateBefore.userLiquidity;
     let userLiquidityAfter = comptrollerStateAfter.userLiquidity;
-    assert.ok(systemLiquidityAfter[1] >= systemLiquidityBefore[1]
-        && systemLiquidityAfter[0] <= systemLiquidityBefore[0]);
-    assert.ok(userLiquidityAfter[1] >= userLiquidityBefore[1]
-        && userLiquidityAfter[0] <= userLiquidityBefore[0]);
+    assert.ok(systemLiquidityAfter[1].cmp(systemLiquidityBefore[1]) >= 0
+        && systemLiquidityAfter[0].cmp(systemLiquidityBefore[0]) <= 0);
+    assert.ok(userLiquidityAfter[1].cmp(userLiquidityBefore[1]) >= 0
+        && userLiquidityAfter[0].cmp(userLiquidityBefore[0]) <= 0);
     // check asset state change
     let bnAmount = web3.utils.toBN(amount);
     assert.ok((userBalanceStateAfter.underlyingBalance.add(bnAmount)).toString(),
         userBalanceStateBefore.underlyingBalance.toString());
     assert.ok((userBalanceStateAfter.dTokenBalance.sub(bnAmount)).toString(),
         userBalanceStateBefore.dTokenBalance);
-    assert.ok(userBalanceStateAfter.cfgtBalance >= userBalanceStateBefore.cfgtBalance);
-    assert.ok(userBalanceStateAfter.cfscBalance >= userBalanceStateBefore.cfscBalance);
+    assert.ok(userBalanceStateAfter.cfgtBalance.cmp(userBalanceStateBefore.cfgtBalance) >= 0);
+    assert.ok(userBalanceStateAfter.cfscBalance.cmp(userBalanceStateBefore.cfscBalance) >= 0);
     // check borrow state change
-    assert.ok(borrowPoolStateAfter.borrowIndex > borrowPoolStateBefore.borrowIndex);
-    assert.ok(borrowPoolStateAfter.accrualBlock > borrowPoolStateBefore.accrualBlock);
-    assert.ok(borrowPoolStateAfter.totalBorrows >= borrowPoolStateBefore.totalBorrows);
-    assert.ok(borrowPoolStateAfter.userBorrows >= borrowPoolStateBefore.userBorrows);
+    assert.ok(borrowPoolStateAfter.borrowIndex.cmp(borrowPoolStateBefore.borrowIndex) > 0);
+    assert.ok(borrowPoolStateAfter.accrualBlock.cmp(borrowPoolStateBefore.accrualBlock) > 0);
+    assert.ok(borrowPoolStateAfter.totalBorrows.cmp(borrowPoolStateBefore.totalBorrows) >= 0);
+    assert.ok(borrowPoolStateAfter.userBorrows.cmp(borrowPoolStateBefore.userBorrows) >= 0);
 }
 
 async function revertDeposit(ctx, market, user, amount) {

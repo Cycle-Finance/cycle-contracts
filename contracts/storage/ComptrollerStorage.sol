@@ -56,6 +56,8 @@ contract ComptrollerStorage is Ownable {
     mapping(address => uint) public collateralFactor;
     /// @notice totalDeposit * systemCollateralFactor >= totalBorrows
     uint public systemUtilizationRate = 90 * (10 ** 16);
+    /// @notice only when the utilization rate is lower than this value, public loans can be allowed
+    uint public publicBorrowThreshold = 60 * (10 ** 16);
     /// @notice multiplier used to calculate the maximum repayAmount when liquidating a borrow
     uint public maxCloseFactor = 80 * (10 ** 16);
     /// @notice multiplier representing the discount on collateral that a liquidator receives

@@ -144,6 +144,18 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
             if (shortfall > 0) {
                 return "insufficient liquidity";
             }
+        } else {
+            (MathError err, Exp memory totalBorrows) = getExp(borrowPool._totalBorrows(), 1);
+            if (err != MathError.NO_ERROR) {
+                return "public borrow failed: totalBorrows";
+            }
+            (MathError err1, Exp memory utilizationRate) = getExp(totalBorrows, totalDeposit);
+            if (err1 != MathError.NO_ERROR) {
+                return "public borrow failed: UR";
+            }
+            if (lessThanOrEqualExp(Exp(publicBorrowThreshold), utilizationRate)) {
+                return "public borrow failed: threshold";
+            }
         }
         return "";
     }
@@ -175,7 +187,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
         if (borrower == publicBorrower) {
             return "disable liquidate public borrower";
         }
-        (uint err, , uint shortfall) = getAccountLiquidity(borrower);
+        (uint err,, uint shortfall) = getAccountLiquidity(borrower);
         if (err != 0) {
             return "calculate account liquidity failed";
         }
@@ -234,7 +246,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
         distributeInterest(dToken, to);
         distributeSupplierCFGT(dToken, from);
         distributeSupplierCFGT(dToken, to);
-        (MathError err, , uint shortfall) = getHypotheticalAccountLiquidity(from, dToken, amount, 0);
+        (MathError err,, uint shortfall) = getHypotheticalAccountLiquidity(from, dToken, amount, 0);
         if (err != MathError.NO_ERROR) {
             return "calculate account liquidity failed";
         }
@@ -280,7 +292,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
         Exp memory hypotheticalBorrows = Exp((totalBorrows + borrowAmount) * expScale);
         Exp memory hypotheticalRedeemValue = Exp(dToken == address(0) ?
             0 : DTokenInterface(dToken).tokenValue(redeemTokens));
-        (MathError err,Exp memory remainLiquidity) = subExp(deposit, hypotheticalRedeemValue);
+        (MathError err, Exp memory remainLiquidity) = subExp(deposit, hypotheticalRedeemValue);
         if (err != MathError.NO_ERROR) {
             return (err, 0, 0);
         }

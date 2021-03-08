@@ -174,6 +174,24 @@ like [RevertDeposit](#RevertDeposit)
 
 like [FailDeposit](#FailDeposit)
 
+## SetPublicBorrower
+
+Description:
+
+- change public borrower address
+
+Param:
+
+- (user)
+
+Action:
+
+- comptroller.setPublicBorrower(user)
+
+Expected Results:
+
+- comptroller.publicBorrower() == user;
+
 ## CompareMarketProfit
 
 Description:

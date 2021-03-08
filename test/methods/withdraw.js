@@ -34,7 +34,7 @@ async function withdraw(ctx, market, user, amount) {
     assert.ok((userBalanceStateAfter.underlyingBalance.sub(bnAmount)).toString(),
         userBalanceStateBefore.underlyingBalance.toString());
     assert.ok((userBalanceStateAfter.dTokenBalance.add(bnAmount)).toString(),
-        userBalanceStateBefore.dTokenBalance);
+        userBalanceStateBefore.dTokenBalance.toString());
     // check borrow state change
     assert.ok(borrowPoolStateAfter.borrowIndex > borrowPoolStateBefore.borrowIndex);
     assert.ok(borrowPoolStateAfter.accrualBlock > borrowPoolStateBefore.accrualBlock);

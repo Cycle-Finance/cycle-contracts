@@ -1,7 +1,5 @@
 const context = require('./context');
 
-let zeroAddress = '0x0000000000000000000000000000000000000000';
-
 async function simpleBorrow(ctx, market, user, amount) {
     let comptrollerStateBefore = await context.comptrollerState(ctx, market, user);
     let borrowPoolStateBefore = await context.borrowPoolState(ctx, user);
@@ -41,12 +39,38 @@ async function simpleBorrow(ctx, market, user, amount) {
     assert.ok(userBalanceStateAfter.dTokenBalance.toString(),
         userBalanceStateBefore.dTokenBalance.toString());
     assert.ok(userBalanceStateAfter.cfgtBalance.cmp(userBalanceStateBefore.cfgtBalance) >= 0);
-    assert.ok(userBalanceStateAfter.cfscBalance.cmp(userBalanceStateBefore.cfscBalance + bnAmount) >= 0);
+    assert.ok(userBalanceStateAfter.cfscBalance.cmp(userBalanceStateBefore.cfscBalance.add(bnAmount)) >= 0);
     // check borrow state change
     assert.ok(borrowPoolStateAfter.borrowIndex.cmp(borrowPoolStateBefore.borrowIndex) > 0);
     assert.ok(borrowPoolStateAfter.accrualBlock.cmp(borrowPoolStateBefore.accrualBlock) > 0);
-    assert.ok(borrowPoolStateAfter.totalBorrows.cmp(borrowPoolStateBefore.totalBorrows + bnAmount) >= 0);
-    assert.ok(borrowPoolStateAfter.userBorrows.cmp(borrowPoolStateBefore.userBorrows + bnAmount) >= 0);
+    assert.ok(borrowPoolStateAfter.totalBorrows.cmp(borrowPoolStateBefore.totalBorrows.add(bnAmount)) >= 0);
+    assert.ok(borrowPoolStateAfter.userBorrows.cmp(borrowPoolStateBefore.userBorrows.add(bnAmount)) >= 0);
 }
 
-module.exports = {simpleBorrow};
+
+async function revertBorrow(ctx, user, amount) {
+    try {
+        await ctx.borrowPool.borrow(amount, {from: user});
+    } catch (e) {
+        console.log('deposit should be reverted by reason %s', e);
+        return;
+    }
+    throw new Error('should be error');
+}
+
+async function failBorrow(ctx, user, amount, reason) {
+    let reasonMatched = false;
+    let tx = await ctx.borrowPool.borrow(amount, {from: user});
+    for (let i = 0; i < tx.logs.length; i++) {
+        let log = tx.logs[i];
+        if (log.event === "Fail") {
+            if (log.args[0] === reason) {
+                reasonMatched = true;
+            }
+            console.log('Fail: %s', log.args);
+        }
+    }
+    assert.ok(reasonMatched);
+}
+
+module.exports = {simpleBorrow, revertBorrow, failBorrow};

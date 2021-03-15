@@ -334,9 +334,9 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
             }
             Exp memory userDeposit = Exp(DTokenInterface(market).tokenValue(balance));
             Exp memory factor = Exp(collateralFactor[market]);
-            (MathError err, Exp memory assetBorrowLimit) = mulExp(factor, userDeposit);
-            if (err != MathError.NO_ERROR) {
-                return (err, 0, 0);
+            (MathError err1, Exp memory assetBorrowLimit) = mulExp(factor, userDeposit);
+            if (err1 != MathError.NO_ERROR) {
+                return (err1, 0, 0);
             }
             borrowLimit = add_(borrowLimit, assetBorrowLimit);
         }
@@ -581,7 +581,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
     /// @notice maybe check market is existed
     function setMintPaused(DTokenInterface market, bool paused) public onlyOwner {
         mintPaused[address(market)] = paused;
-        emit ActionPaused("Mint", market, paused);
+        emit ActionPaused(market, "Mint", paused);
     }
 
     function setBorrowPaused(bool paused) public onlyOwner {

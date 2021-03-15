@@ -53,7 +53,9 @@ async function revertDeposit(ctx, market, user, amount) {
         await deposit(market, user, amount);
     } catch (e) {
         console.log('deposit should be reverted by reason %s', e);
+        return;
     }
+    throw new Error('should be error');
 }
 
 async function failDeposit(ctx, market, user, amount, reason) {

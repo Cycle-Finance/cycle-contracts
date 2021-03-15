@@ -6,31 +6,41 @@ these case should be successful and simple. The borrower should own deposit at a
 
 ### borrow-1-1
 
+if there are no liquidity at system, user could borrow 0 CFSC.
+
+- [SimpleBorrow](./test-function.md#SimpleBorrow)(dEther, accounts[0], 0 CFSC)
+
+### borrow-1-2
+
 ether deposit
 
 - [SimpleDeposit](./test-function.md#SimpleDeposit)(dEther, accounts[0], 10 ETH)
 - [SimpleBorrow](./test-function.md#SimpleBorrow)(dEther, accounts[0], 10000 CFSC)
+- [SimpleBorrow](./test-function.md#SimpleBorrow)(dEther, accounts[0], 0 CFSC)
 
-### borrow-1-2
+### borrow-1-3
 
 wbtc deposit
 
 - [SimpleDeposit](./test-function.md#SimpleDeposit)(dWBTC, accounts[0], 10 dWBTC)
 - [SimpleBorrow](./test-function.md#SimpleBorrow)(dWBTC, accounts[0], 10000 CFSC)
+- [SimpleBorrow](./test-function.md#SimpleBorrow)(dWBTC, accounts[0], 0 CFSC)
 
-### borrow-1-3
+### borrow-1-4
 
 USDC deposit
 
 - [SimpleDeposit](./test-function.md#SimpleDeposit)(dUSDC, accounts[0], 10000 USDC)
 - [SimpleBorrow](./test-function.md#SimpleBorrow)(dUSDC, accounts[0], 7000 CFSC)
+- [SimpleBorrow](./test-function.md#SimpleBorrow)(dUSDC, accounts[0], 0 CFSC)
 
-### borrow-1-4
+### borrow-1-5
 
 USDT deposit
 
 - [SimpleDeposit](./test-function.md#SimpleDeposit)(dUSDT, accounts[0], 10000 USDT)
 - [SimpleBorrow](./test-function.md#SimpleBorrow)(dUSDT, accounts[0], 7000 CFSC)
+- [SimpleBorrow](./test-function.md#SimpleBorrow)(dUSDT, accounts[0], 0 CFSC)
 
 ## borrow-2
 
@@ -66,9 +76,10 @@ borrow not exceed account borrow limit.
 
 ## borrow-3
 
-if the user has not deposited, he cannot borrow.
+if the user has not deposited, he cannot borrow more than 0 CFSC.
 
-- [FailBorrow](./test-function.md#FailBorrow)(dEther, accounts[1], 46655 CFSC, "insufficient liquidity")
+- [FailBorrow](./test-function.md#FailBorrow)(dEther, accounts[1], 10000 CFSC, "insufficient liquidity")
+- [SimpleBorrow](./test-function.md#SimpleBorrow)(dEther, accounts[1], 0 CFSC)
 
 ## borrow-4
 
@@ -102,18 +113,10 @@ Then public borrower borrow some value and not reach max system UR. Case should 
 like [borrow-4-1], but user borrows exceed public borrow threshold. Case should be failed.
 
 - [SimpleBorrow](./test-function.md#SimpleBorrow)(dEther, accounts[0], 41000 CFSC)
-
-#### borrow-4-2-1
-
-public borrow exceed max system UR.
-
 - [FailBorrow](./test-function.md#FailBorrow)(dEther, accounts[1], 9000 CFSC, "insufficient system liquidity")
-
-#### borrow-4-2-2
-
-public borrow doesn't exceed max system UR.
-
+    - public borrow exceed max system UR
 - [FailBorrow](./test-function.md#FailBorrow)(dEther, accounts[1], 5000 CFSC, "public borrow failed: threshold")
+    - public borrow doesn't exceed max system UR
 
 ### borrow-4-3
 
@@ -139,7 +142,7 @@ we compare borrwer CFGT distribution. The more CFSC they borrow, the more CFGT t
 
 When users borrow 0 cfscs, they may not succeed, because interest is accumulated over time.
 
-- [SimpleDeposit](./test-function.md#SimpleDeposit)(dWBTC, accounts[0], 1 dWBTC)
+- # [SimpleDeposit](./test-function.md#SimpleDeposit)(dWBTC, accounts[0], 1 dWBTC)
     - collateral value is 51234*0.75=38425.5
 - [SimpleBorrow](./test-function.md#SimpleBorrow)(dWBTC, accounts[0], 38425 CFSC)
 - speed 10 block.

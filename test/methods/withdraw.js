@@ -69,7 +69,9 @@ async function revertWithdraw(ctx, market, user, amount) {
         await market.redeem(amount, {from: user});
     } catch (e) {
         console.log('withdraw should be reverted by reason %s', e);
+        return;
     }
+    throw new Error('should be error');
 }
 
 async function failWithdraw(ctx, market, user, amount, reason) {

@@ -99,7 +99,58 @@ Then public borrower borrow some value and not reach max system UR. Case should 
 
 ### borrow-4-2
 
-like [borrow-4-1], but public borrower borrow value exceed max system UR. Case should be failed.
+like [borrow-4-1], but user borrows exceed public borrow threshold. Case should be failed.
+
+- [SimpleBorrow](./test-function.md#SimpleBorrow)(dEther, accounts[0], 41000 CFSC)
+
+#### borrow-4-2-1
+
+public borrow exceed max system UR.
+
+- [FailBorrow](./test-function.md#FailBorrow)(dEther, accounts[1], 9000 CFSC, "insufficient system liquidity")
+
+#### borrow-4-2-2
+
+public borrow doesn't exceed max system UR.
+
+- [FailBorrow](./test-function.md#FailBorrow)(dEther, accounts[1], 5000 CFSC, "public borrow failed: threshold")
+
+### borrow-4-3
+
+like [borrow-4-1], user borrows doesn't exceed public borrow threshold, but public borrower borrow value exceed max
+system UR. Case should be failed.
 
 - [SimpleBorrow](./test-function.md#SimpleBorrow)(dEther, accounts[0], 33000 CFSC)
 - [FailBorrow](./test-function.md#FailBorrow)(dEther, accounts[1], 17000 CFSC, "insufficient system liquidity")
+
+## borrow-5
+
+we compare borrwer CFGT distribution. The more CFSC they borrow, the more CFGT they get.
+
+- [SimpleDeposit](./test-function.md#SimpleDeposit)(dWBTC, accounts[0], 1 dWBTC)
+- [SimpleDeposit](./test-function.md#SimpleDeposit)(dWBTC, accounts[1], 1 dWBTC)
+- [SimpleBorrow](./test-function.md#SimpleBorrow)(dWBTC, accounts[0], 20000 CFSC)
+- [SimpleBorrow](./test-function.md#SimpleBorrow)(dWBTC, accounts[1], 10000 CFSC)
+- [_, _, borrowerCFGT] = [CompareMarketProfit](./test-function.md#CompareMarketProfit)(dWBTC, accounts[0], accounts[1],
+  10);
+    - borrowerCFGT > 0;
+
+## borrow-6
+
+When users borrow 0 cfscs, they may not succeed, because interest is accumulated over time.
+
+- [SimpleDeposit](./test-function.md#SimpleDeposit)(dWBTC, accounts[0], 1 dWBTC)
+    - collateral value is 51234*0.75=38425.5
+- [SimpleBorrow](./test-function.md#SimpleBorrow)(dWBTC, accounts[0], 38425 CFSC)
+- speed 10 block.
+- [FailBorrow](./test-function.md#FailBorrow)(dWBTC, accounts[0], 0 CFSC, "insufficient liquidity")
+
+## borrow-7
+
+borrow should be reverted while borrow is paused.
+
+- [SimpleDeposit](./test-function.md#SimpleDeposit)(dWBTC, accounts[0], 1 dWBTC);
+- [SetBorrowPaused](./test-function.md#SetBorrowPaused)(true);
+- [RevertBorrow](./test-function.md#RevertBorrow)(dWBTC, accounts[0], 10000 CFSC);
+- [SetBorrowPaused](./test-function.md#SetBorrowPaused)(false);
+- [SimpleBorrow](./test-function.md#SimpleBorrow)(dWBTC, accounts[0], 20000 CFSC)

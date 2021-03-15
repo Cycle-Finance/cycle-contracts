@@ -19,8 +19,8 @@ const WBTC = artifacts.require("TestWBTC");
 
 const IERC20 = artifacts.require("IERC20");
 
-const deposit = require('./methods/deposit');
-const context = require('./methods/context');
+const deposit = require('../methods/deposit');
+const context = require('../methods/context');
 
 contract('deposit test case 1-4', async (accounts) => {
     let ctx;
@@ -74,17 +74,21 @@ contract('deposit test case 1-4', async (accounts) => {
     it('deposit-1: accounts[0] deposit 10 ETH', async () => {
         let amount = web3.utils.toWei('10');
         await deposit.simpleDeposit(ctx, ctx.dEther, accounts[0], amount);
+        await deposit.simpleDeposit(ctx, ctx.dEther, accounts[0], 0);
     });
     it('deposit-2: accounts[0] deposit 10 WBTC', async () => {
         let amount = 10 * (10 ** 8);
         await deposit.simpleDeposit(ctx, ctx.dWBTC, accounts[0], amount);
+        await deposit.simpleDeposit(ctx, ctx.dWBTC, accounts[0], 0);
     });
     it('deposit-3: accounts[0] deposit 1000 USDC', async () => {
         let amount = 1000 * (10 ** 6);
         await deposit.simpleDeposit(ctx, ctx.dUSDC, accounts[0], amount);
+        await deposit.simpleDeposit(ctx, ctx.dUSDC, accounts[0], 0);
     });
     it('deposit-4: accounts[0] deposit 1000 USDT', async () => {
         let amount = 1000 * (10 ** 6);
         await deposit.simpleDeposit(ctx, ctx.dUSDT, accounts[0], amount);
+        await deposit.simpleDeposit(ctx, ctx.dUSDT, accounts[0], 0);
     });
 });

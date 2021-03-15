@@ -19,11 +19,10 @@ const WBTC = artifacts.require("TestWBTC");
 
 const IERC20 = artifacts.require("IERC20");
 
-const context = require('./methods/context');
-const withdraw = require('./methods/withdraw');
-const deposit = require('./methods/deposit');
+const deposit = require('../methods/deposit');
+const systemCfg = require('../methods/system-config');
 
-contract('withdraw test case 1', async (accounts) => {
+contract('deposit test case 1-4', async (accounts) => {
     let ctx;
     before(async () => {
         let wbtc = await WBTC.deployed();
@@ -56,40 +55,39 @@ contract('withdraw test case 1', async (accounts) => {
             oracle: oracle,
             IERC20: IERC20,
         };
-        // transfer asset to other accounts
-        let wbtcAmount = 1000 * (10 ** 8);
-        let usdAmount = 1000000 * (10 ** 6);
-        await wbtc.transfer(accounts[1], wbtcAmount);
-        await wbtc.transfer(accounts[2], wbtcAmount);
-        await wbtc.transfer(accounts[3], wbtcAmount);
-        await wbtc.transfer(accounts[4], wbtcAmount);
-        await usdc.transfer(accounts[1], usdAmount);
-        await usdc.transfer(accounts[2], usdAmount);
-        await usdc.transfer(accounts[3], usdAmount);
-        await usdc.transfer(accounts[4], usdAmount);
-        await usdt.transfer(accounts[1], usdAmount);
-        await usdt.transfer(accounts[2], usdAmount);
-        await usdt.transfer(accounts[3], usdAmount);
-        await usdt.transfer(accounts[4], usdAmount);
-        // provide 10 ETH as system liquidity
-        let amount = web3.utils.toWei('10');
+    });
+    it('deposit-7: deposit should revert when mint paused', async () => {
+        let amount = web3.utils.toWei('1');
+        await systemCfg.SetMintPaused(ctx, ctx.dEther, true);
+        await deposit.revertDeposit(ctx, ctx.dEther, accounts[0], 0);
+        await deposit.revertDeposit(ctx, ctx.dEther, accounts[0], amount);
+        await systemCfg.SetMintPaused(ctx, ctx.dEther, false);
+        await deposit.simpleDeposit(ctx, ctx.dEther, accounts[0], 0);
         await deposit.simpleDeposit(ctx, ctx.dEther, accounts[0], amount);
-    });
-    let reason = "calculate system liquidity failed";
-    it('withdraw-3-1', async () => {
-        let amount = web3.utils.toWei('100');
-        await withdraw.failWithdraw(ctx, ctx.dEther, accounts[0], amount, reason);
-    });
-    it('withdraw-3-2', async () => {
-        let amount = 100 * (10 ** 8);
-        await withdraw.failWithdraw(ctx, ctx.dWBTC, accounts[0], amount, reason);
-    });
-    it('withdraw-3-3', async () => {
-        let amount = 1000000 * (10 ** 6);
-        await withdraw.failWithdraw(ctx, ctx.dUSDC, accounts[0], amount, reason);
-    });
-    it('withdraw-3-4', async () => {
-        let amount = 1000000 * (10 ** 6);
-        await withdraw.failWithdraw(ctx, ctx.dUSDT, accounts[0], amount, reason);
+
+        amount = 10 ** 8;
+        await systemCfg.SetMintPaused(ctx, ctx.dWBTC, true);
+        await deposit.revertDeposit(ctx, ctx.dWBTC, accounts[0], 0);
+        await deposit.revertDeposit(ctx, ctx.dWBTC, accounts[0], amount);
+        await systemCfg.SetMintPaused(ctx, ctx.dWBTC, false);
+        await deposit.simpleDeposit(ctx, ctx.dWBTC, accounts[0], 0);
+        await deposit.simpleDeposit(ctx, ctx.dWBTC, accounts[0], amount);
+
+
+        amount = 10 ** 6;
+        await systemCfg.SetMintPaused(ctx, ctx.dUSDC, true);
+        await deposit.revertDeposit(ctx, ctx.dUSDC, accounts[0], 0);
+        await deposit.revertDeposit(ctx, ctx.dUSDC, accounts[0], amount);
+        await systemCfg.SetMintPaused(ctx, ctx.dUSDC, false);
+        await deposit.simpleDeposit(ctx, ctx.dUSDC, accounts[0], 0);
+        await deposit.simpleDeposit(ctx, ctx.dUSDC, accounts[0], amount);
+
+
+        await systemCfg.SetMintPaused(ctx, ctx.dUSDT, true);
+        await deposit.revertDeposit(ctx, ctx.dUSDT, accounts[0], 0);
+        await deposit.revertDeposit(ctx, ctx.dUSDT, accounts[0], amount);
+        await systemCfg.SetMintPaused(ctx, ctx.dUSDT, false);
+        await deposit.simpleDeposit(ctx, ctx.dUSDT, accounts[0], 0);
+        await deposit.simpleDeposit(ctx, ctx.dUSDT, accounts[0], amount);
     });
 });

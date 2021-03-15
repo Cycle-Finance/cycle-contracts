@@ -31,6 +31,12 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
     event NewMaxCloseFactor(uint oldFactor, uint newFactor);
     event NewLiquidationIncentive(uint oldIncentive, uint newIncentive);
 
+    /// @notice Emitted when an action is paused globally
+    event ActionPaused(string action, bool pauseState);
+
+    /// @notice Emitted when an action is paused on a market
+    event ActionPaused(DTokenInterface dToken, string action, bool pauseState);
+
     function _isComptroller() public override pure returns (bool){
         return true;
     }
@@ -145,12 +151,9 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
                 return "insufficient liquidity";
             }
         } else {
-            (MathError err, Exp memory totalBorrows) = getExp(borrowPool._totalBorrows(), 1);
+            Exp memory totalBorrows = Exp(borrowPool._totalBorrows() * expScale);
+            (MathError err, Exp memory utilizationRate) = divExp(totalBorrows, Exp(totalDeposit));
             if (err != MathError.NO_ERROR) {
-                return "public borrow failed: totalBorrows";
-            }
-            (MathError err1, Exp memory utilizationRate) = getExp(totalBorrows, totalDeposit);
-            if (err1 != MathError.NO_ERROR) {
                 return "public borrow failed: UR";
             }
             if (lessThanOrEqualExp(Exp(publicBorrowThreshold), utilizationRate)) {
@@ -573,5 +576,26 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
         require(incentive > expScale, "illegal incentive");
         liquidationIncentive = incentive;
         emit NewLiquidationIncentive(oldIncentive, incentive);
+    }
+
+    /// @notice maybe check market is existed
+    function setMintPaused(DTokenInterface market, bool paused) public onlyOwner {
+        mintPaused[address(market)] = paused;
+        emit ActionPaused("Mint", market, paused);
+    }
+
+    function setBorrowPaused(bool paused) public onlyOwner {
+        borrowPaused = paused;
+        emit ActionPaused("Borrow", paused);
+    }
+
+    function setTransferPaused(bool paused) public onlyOwner {
+        transferPaused = paused;
+        emit ActionPaused("Transfer", paused);
+    }
+
+    function setSeizePaused(bool paused) public onlyOwner {
+        seizePaused = paused;
+        emit ActionPaused("Seize", paused);
     }
 }

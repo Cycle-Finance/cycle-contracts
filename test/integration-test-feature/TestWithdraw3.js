@@ -19,11 +19,11 @@ const WBTC = artifacts.require("TestWBTC");
 
 const IERC20 = artifacts.require("IERC20");
 
-const withdraw = require('./methods/withdraw');
-const deposit = require('./methods/deposit');
-const borrow = require('./methods/borrow');
+const context = require('../methods/context');
+const withdraw = require('../methods/withdraw');
+const deposit = require('../methods/deposit');
 
-contract('withdraw test case 5', async (accounts) => {
+contract('withdraw test case 1', async (accounts) => {
     let ctx;
     before(async () => {
         let wbtc = await WBTC.deployed();
@@ -74,22 +74,22 @@ contract('withdraw test case 5', async (accounts) => {
         // provide 10 ETH as system liquidity
         let amount = web3.utils.toWei('10');
         await deposit.simpleDeposit(ctx, ctx.dEther, accounts[0], amount);
-        let borrowAmount = web3.utils.toWei('10000');
-        await borrow.simpleBorrow(ctx, ctx.dEther, accounts[0], borrowAmount);
     });
-    it('withdraw-5-1', async () => {
+    let reason = "calculate system liquidity failed";
+    it('withdraw-3-1', async () => {
         let amount = web3.utils.toWei('100');
-        await withdraw.failWithdraw(ctx, ctx.dEther, accounts[1], amount, "calculate system liquidity failed");
-        await withdraw.simpleWithdraw(ctx, ctx.dEther, accounts[1], 0)
+        await withdraw.failWithdraw(ctx, ctx.dEther, accounts[0], amount, reason);
     });
-    it('withdraw-5-2', async () => {
-        let amount = web3.utils.toWei('10');
-        await withdraw.failWithdraw(ctx, ctx.dEther, accounts[1], amount, "insufficient system liquidity");
-        await withdraw.simpleWithdraw(ctx, ctx.dEther, accounts[1], 0)
+    it('withdraw-3-2', async () => {
+        let amount = 100 * (10 ** 8);
+        await withdraw.failWithdraw(ctx, ctx.dWBTC, accounts[0], amount, reason);
     });
-    it('withdraw-5-3', async () => {
-        let amount = 1000 * (10 ** 6);
-        await withdraw.failWithdraw(ctx, ctx.dUSDT, accounts[1], amount, "calculate account liquidity failed");
-        await withdraw.simpleWithdraw(ctx, ctx.dEther, accounts[1], 0)
+    it('withdraw-3-3', async () => {
+        let amount = 1000000 * (10 ** 6);
+        await withdraw.failWithdraw(ctx, ctx.dUSDC, accounts[0], amount, reason);
+    });
+    it('withdraw-3-4', async () => {
+        let amount = 1000000 * (10 ** 6);
+        await withdraw.failWithdraw(ctx, ctx.dUSDT, accounts[0], amount, reason);
     });
 });

@@ -192,6 +192,78 @@ Expected Results:
 
 - comptroller.publicBorrower() == user;
 
+## SetMintPaused
+
+Description:
+
+- pause market mint
+
+Param:
+
+- (market, state)
+
+Action:
+
+- comptroller.setMintPaused(market, state)
+
+Expected Results:
+
+- comptroller.mintPaused(market) == state;
+
+## SetBorrowPaused
+
+Description:
+
+- pause borrow
+
+Param:
+
+- (state)
+
+Action:
+
+- comptroller.setBorrowPaused(state)
+
+Expected Results:
+
+- comptroller.borrowPaused() == state;
+
+## SetTransferPaused
+
+Description:
+
+- pause dToken transfer
+
+Param:
+
+- (state)
+
+Action:
+
+- comptroller.setTransferPaused(state)
+
+Expected Results:
+
+- comptroller.transferPaused() == state;
+
+## SetSeizePaused
+
+Description:
+
+- pause liquidation
+
+Param:
+
+- (state)
+
+Action:
+
+- comptroller.setSeizePaused(state)
+
+Expected Results:
+
+- comptroller.seizePaused() == state;
+
 ## CompareMarketProfit
 
 Description:

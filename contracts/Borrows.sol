@@ -131,6 +131,7 @@ contract Borrows is BorrowsStorage, BorrowsInterface, Exponential, ErrorReporter
             amount = userBorrows;
         }
         // revert while asset transfer failed
+        // if there are some error after asset transferred, the tx should be reverted
         if (scAddr == address(CFSC)) {
             require(scAddr.safeTransferFrom(payer, address(this), amount), "transferFrom asset failed");
             CFSC.burn(amount);

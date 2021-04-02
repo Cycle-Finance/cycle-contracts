@@ -25,7 +25,7 @@ Expected Results:
     - userInterestIndex[market][user] >= before;
     - supplyIndex[market] >= before;
     - supplierIndex[market][user] >= before;
-    - userAccrued[accounts[0]] == 0 or >= before;
+    - userAccrued[user] == 0 or >= before;
     - getSystemLiquidity()[1] >= before && getSystemLiquidity()[2] <= before;
     - getAccountLiquidity(user)[1] >= before && getAccountLiquidity(user)[2] <= before;
 - User asset state change:
@@ -99,7 +99,7 @@ Expected Results:
     - userInterestIndex[market][user] >= before;
     - supplyIndex[market] >= before;
     - supplierIndex[market][user] >= before;
-    - userAccrued[accounts[0]] == 0 or >= before;
+    - userAccrued[user] == 0 or >= before;
     - getSystemLiquidity()[1] <= before && getSystemLiquidity()[2] >= before;
     - getAccountLiquidity(user)[1] <= before && getAccountLiquidity(user)[2] >= before;
 - User asset state change:
@@ -149,7 +149,7 @@ Expected Results:
     - userInterestIndex[market][user] >= before;
     - supplyIndex[market] >= before;
     - supplierIndex[market][user] >= before;
-    - userAccrued[accounts[0]] == 0 or >= before;
+    - userAccrued[user] == 0 or >= before;
     - getSystemLiquidity()[1] <= before && getSystemLiquidity()[2] >= before;
     - getAccountLiquidity(user)[1] <= before && getAccountLiquidity(user)[2] >= before;
     - borrowDistributedBlock >= before;
@@ -174,7 +174,152 @@ like [RevertDeposit](#RevertDeposit)
 
 like [FailDeposit](#FailDeposit)
 
-## SetPublicBorrower
+## RepayBorrow
+
+### SimpleRepayBorrow
+
+Description:
+
+- user repay borrow used specified stable coin, maybe CFSC or other stable coin.
+
+Param: ({market}, user, usedStableCoinContract, repayAmount)
+
+- param market is optional;
+
+Action:
+
+- borrowPool.repayBorrow(usedStableCoinContract, repayAmount, {from: user})
+- comptroller.refreshMarketDeposit()
+
+Expected Results:
+
+- Comptroller state change:
+    - refreshedBlock > before;
+    - totalDeposit == before;
+    - marketDeposit[market] == before;
+    - marketInterestIndex[market] >= before;
+    - userInterestIndex[market][user] >= before;
+    - supplyIndex[market] >= before;
+    - supplierIndex[market][user] >= before;
+    - userAccrued[user] == 0 or >= before;
+    - getSystemLiquidity()[1] >= before && getSystemLiquidity()[2] <= before;
+    - getAccountLiquidity(user)[1] >= before && getAccountLiquidity(user)[2] <= before;
+    - borrowDistributedBlock >= before;
+    - borrowIndex >= before;
+    - borrowerIndex >= before
+- User asset state change:
+    - market.underlying.balanceOf(user) == before;
+    - market.balanceOf(user) == before;
+    - CFGT.balanceOf(user)>= before;
+    - CFSC.balanceOf(user)> before-repayAmount;
+    - usedStableCoinContract.balanceOf(user) < before;
+- Borrow state change:
+    - borrowIndex > before;
+    - accrualBlock > before;
+    - totalBorrows >= before - repayAmount;
+    - getBorrows(user) >= before - repayAmount;
+
+### SimpleRepayBorrowBehalf
+
+Description:
+
+- **payer repay borrow behalf borrower.**
+
+Param: ({market}, payer, user, usedStableCoinContract, repayAmount)
+
+- param market is optional;
+
+Action:
+
+- borrowPool.repayBorrowBehalf(usedStableCoinContract, borrower, repayAmount, {from: payer})
+- comptroller.refreshMarketDeposit()
+
+State Change:
+
+- Comptroller state change:
+    - same as [SimpleRepayBorrow](#SimpleRepayBorrow)
+- User asset state change:
+    - market.underlying.balanceOf(payer) == before;
+    - market.underlying.balanceOf(borrower) == before;
+    - market.balanceOf(payer) == before;
+    - market.balanceOf(borrower) == before;
+    - CFGT.balanceOf(borrower)>= before;
+    - CFGT.balanceOf(payer)== before;
+    - CFSC.balanceOf(borrower)>= before;
+    - usedStableCoinContract.balanceOf(payer) > before;
+- Borrow state change:
+    - same as [SimpleRepayBorrow](#SimpleRepayBorrow)
+
+### RevertRepayBorrow
+
+like [RevertDeposit](#RevertDeposit)
+
+### RevertRepayBorrowBehalf
+
+like [RevertDeposit](#RevertDeposit)
+
+## Transfer
+
+### SimpleTransfer
+
+Description:
+
+- user transfer dToken
+
+Param: (market, from, to, amount)
+
+action:
+
+- market.transfer(to, amount, {from: from});
+- comptroller.refreshMarketDeposit()
+
+Expected Results:
+
+- Comptroller state change:
+    - refreshedBlock > before;
+    - totalDeposit == before;
+    - marketDeposit[market] == before;
+    - marketInterestIndex[market] >= before;
+    - userInterestIndex[market][from] >= before;
+    - userInterestIndex[market][to] >= before;
+    - supplyIndex[market] >= before;
+    - supplierIndex[market][from] >= before;
+    - supplierIndex[market][to] >= before;
+    - userAccrued[from] == 0 or >= before;
+    - userAccrued[to] == 0 or >= before;
+    - getSystemLiquidity()[1] <= before && getSystemLiquidity()[2] >= before;
+    - getAccountLiquidity(from)[1] <= before && getAccountLiquidity(from)[2] >= before;
+    - getAccountLiquidity(to)[1] >= before && getAccountLiquidity(to)[2] <= before;
+    - borrowDistributedBlock >= before;
+    - borrowIndex >= before;
+    - borrowerIndex >= before
+- User asset state change:
+    - market.underlying.balanceOf(from) == before;
+    - market.underlying.balanceOf(to) == before;
+    - market.balanceOf(from) == before-amount;
+    - market.balanceOf(to) == before+amount;
+    - CFGT.balanceOf(from)>= before;
+    - CFGT.balanceOf(to)>= before;
+    - CFSC.balanceOf(from)>= before;
+    - CFSC.balanceOf(to)>= before;
+- Borrow state change:
+    - borrowIndex > before;
+    - accrualBlock > before;
+    - totalBorrows >= before;
+    - getBorrows(from) >= before;
+    - getBorrows(to) >= before;
+
+### RevertTransfer
+
+like [RevertDeposit](#RevertDeposit)
+
+### FailTransfer
+
+like [FailDeposit](#FailDeposit)
+
+## SystemConfig
+
+### SetPublicBorrower
 
 Description:
 
@@ -192,7 +337,7 @@ Expected Results:
 
 - comptroller.publicBorrower() == user;
 
-## SetMintPaused
+### SetMintPaused
 
 Description:
 
@@ -210,7 +355,7 @@ Expected Results:
 
 - comptroller.mintPaused(market) == state;
 
-## SetBorrowPaused
+### SetBorrowPaused
 
 Description:
 
@@ -228,7 +373,7 @@ Expected Results:
 
 - comptroller.borrowPaused() == state;
 
-## SetTransferPaused
+### SetTransferPaused
 
 Description:
 
@@ -246,7 +391,7 @@ Expected Results:
 
 - comptroller.transferPaused() == state;
 
-## SetSeizePaused
+### SetSeizePaused
 
 Description:
 

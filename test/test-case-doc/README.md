@@ -19,7 +19,7 @@ the number of dToken and borrows, deposit Value, distributed CFGT and CFSC inter
 
 ### Case
 
-Case Type: deposit/withdraw/borrow/repayBorrow/liquidateBorrow/modifySystemConfig
+Case Type: deposit/withdraw/borrow/repayBorrow/liquidateBorrow/transfer/modifySystemConfig
 
 >note: All test cases use the default configuration unless specifically stated in the precondition.
 

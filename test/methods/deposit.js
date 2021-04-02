@@ -35,10 +35,10 @@ async function simpleDeposit(ctx, market, user, amount) {
         && userLiquidityAfter[0].cmp(userLiquidityBefore[0]) <= 0);
     // check asset state change
     let bnAmount = web3.utils.toBN(amount);
-    assert.ok((userBalanceStateAfter.underlyingBalance.add(bnAmount)).toString(),
+    assert.equal((userBalanceStateAfter.underlyingBalance.add(bnAmount)).toString(),
         userBalanceStateBefore.underlyingBalance.toString());
-    assert.ok((userBalanceStateAfter.dTokenBalance.sub(bnAmount)).toString(),
-        userBalanceStateBefore.dTokenBalance);
+    assert.equal((userBalanceStateAfter.dTokenBalance.sub(bnAmount)).toString(),
+        userBalanceStateBefore.dTokenBalance.toString());
     assert.ok(userBalanceStateAfter.cfgtBalance.cmp(userBalanceStateBefore.cfgtBalance) >= 0);
     assert.ok(userBalanceStateAfter.cfscBalance.cmp(userBalanceStateBefore.cfscBalance) >= 0);
     // check borrow state change

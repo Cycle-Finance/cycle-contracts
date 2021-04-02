@@ -211,8 +211,11 @@ Expected Results:
     - market.underlying.balanceOf(user) == before;
     - market.balanceOf(user) == before;
     - CFGT.balanceOf(user)>= before;
-    - CFSC.balanceOf(user)> before-repayAmount;
-    - usedStableCoinContract.balanceOf(user) < before;
+    - if usedStableCoinContract == CFSC:
+        - CFSC.balanceOf(user)>= before-repayAmount;
+    - else:
+        - usedStableCoinContract.balanceOf(user) >= before;
+        - CFSC.balanceOf(user)>= before;
 - Borrow state change:
     - borrowIndex > before;
     - accrualBlock > before;
@@ -228,6 +231,7 @@ Description:
 Param: ({market}, payer, user, usedStableCoinContract, repayAmount)
 
 - param market is optional;
+- we require payer cannot equal user, maybe contract has not this constraint
 
 Action:
 
@@ -246,7 +250,7 @@ State Change:
     - CFGT.balanceOf(borrower)>= before;
     - CFGT.balanceOf(payer)== before;
     - CFSC.balanceOf(borrower)>= before;
-    - usedStableCoinContract.balanceOf(payer) > before;
+    - usedStableCoinContract.balanceOf(payer) <= before;
 - Borrow state change:
     - same as [SimpleRepayBorrow](#SimpleRepayBorrow)
 

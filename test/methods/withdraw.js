@@ -31,9 +31,9 @@ async function simpleWithdraw(ctx, market, user, amount) {
         && userLiquidityAfter[2].cmp(userLiquidityBefore[2]) >= 0);
     // check asset state change
     let bnAmount = web3.utils.toBN(amount);
-    assert.ok((userBalanceStateAfter.underlyingBalance.sub(bnAmount)).toString(),
+    assert.equal((userBalanceStateAfter.underlyingBalance.sub(bnAmount)).toString(),
         userBalanceStateBefore.underlyingBalance.toString());
-    assert.ok((userBalanceStateAfter.dTokenBalance.add(bnAmount)).toString(),
+    assert.equal((userBalanceStateAfter.dTokenBalance.add(bnAmount)).toString(),
         userBalanceStateBefore.dTokenBalance.toString());
     // check borrow state change
     assert.ok(borrowPoolStateAfter.borrowIndex.cmp(borrowPoolStateBefore.borrowIndex) > 0);

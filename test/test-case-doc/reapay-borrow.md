@@ -49,8 +49,8 @@ the debt of borrower is more than 0.
 
 deposit some value so that system enable borrow.
 
-- [SimpleDeposit](./test-function.md#SimpleDeposit)(dWBTC, accounts[0], 1 dWBTC)
-- [SimpleBorrow](./test-function.md#SimpleBorrow)(dWBTC, accounts[0], 10000 CFSC)
+- [SimpleDeposit](./test-function.md#SimpleDeposit)(dEther, accounts[0], 10 dEther)
+- [SimpleBorrow](./test-function.md#SimpleBorrow)(dEther, accounts[0], 10000 CFSC)
 
 ### repayBorrow-2-1
 

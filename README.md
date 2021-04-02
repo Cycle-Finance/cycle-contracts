@@ -5,8 +5,7 @@ solidity implementation of cycle finance protocol
 ## TODO List
 
 - integration test
-    - repay borrow JS implementation
-    - transfer test case doc and implementation
+    - run transfer and repayBorrow test case
     - system config JS implementation
     - liquidate borrow
 - quantitative integration test

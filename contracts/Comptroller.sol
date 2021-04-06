@@ -27,7 +27,8 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
     event NewBorrowSpeed(uint oldSpeed, uint newSpeed);
 
     event NewCollateralFactor(address dToken, uint oldFactor, uint newFactor);
-    event NewUtilizationRate(uint oldFactor, uint newFactor);
+    event NewPublicBorrowThreshold(uint oldThreshold, uint newThreshold);
+    event NewMaxUtilizationRate(uint oldRate, uint newRate);
     event NewMaxCloseFactor(uint oldFactor, uint newFactor);
     event NewLiquidationIncentive(uint oldIncentive, uint newIncentive);
 
@@ -289,7 +290,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
 
     function getHypotheticalSystemLiquidity(address dToken, uint redeemTokens, uint borrowAmount)
     internal view returns (MathError, uint, uint){
-        Exp memory systemFactor = Exp(systemUtilizationRate);
+        Exp memory systemFactor = Exp(maxSystemUtilizationRate);
         Exp memory deposit = Exp(totalDeposit);
         uint totalBorrows = borrowPool._totalBorrows();
         Exp memory hypotheticalBorrows = Exp((totalBorrows + borrowAmount) * expScale);
@@ -560,11 +561,19 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
     }
 
     /// @notice don't limit the minimum UR
-    function setSystemUtilizationRate(uint rate) public onlyOwner {
-        uint oldRate = systemUtilizationRate;
+    function setPublicBorrowThreshold(uint threshold) public onlyOwner {
+        uint oldThreshold = publicBorrowThreshold;
+        require(threshold < maxSystemUtilizationRate, "illegal threshold");
+        publicBorrowThreshold = threshold;
+        emit NewPublicBorrowThreshold(oldThreshold, threshold);
+    }
+
+    /// @notice don't limit the minimum UR
+    function setMaxSystemUtilizationRate(uint rate) public onlyOwner {
+        uint oldRate = maxSystemUtilizationRate;
         require(rate < expScale, "illegal utilization rate");
-        systemUtilizationRate = rate;
-        emit NewUtilizationRate(oldRate, rate);
+        maxSystemUtilizationRate = rate;
+        emit NewMaxUtilizationRate(oldRate, rate);
     }
 
     function setMaxCloseFactor(uint factor) public onlyOwner {

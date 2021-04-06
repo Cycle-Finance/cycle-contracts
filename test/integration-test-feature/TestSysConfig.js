@@ -82,4 +82,16 @@ contract('modify system config test case', async (accounts) => {
         await sysConfig.SetSeizePaused(ctx, true);
         await sysConfig.SetSeizePaused(ctx, false);
     });
+    it('config-6: set public borrow threshold', async () => {
+        await sysConfig.SetPublicBorrowThreshold(ctx, web3.utils.toWei('0.5'));
+    });
+    it('config-7: set max system utilization rate', async () => {
+        await sysConfig.SetMaxSystemUtilizationRate(ctx, web3.utils.toWei('0.95'));
+    });
+    it('config-8: change max close factor of liquidation', async () => {
+        await sysConfig.SetMaxCloseFactor(ctx, web3.utils.toWei('0.88'));
+    });
+    it('config-9: change liquidation incentive', async () => {
+        await sysConfig.SetLiquidationIncentive(ctx, web3.utils.toWei('1.05'));
+    });
 });

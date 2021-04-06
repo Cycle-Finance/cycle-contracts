@@ -174,16 +174,14 @@ contract Borrows is BorrowsStorage, BorrowsInterface, Exponential, ErrorReporter
         if (bytes(errInfo).length != 0) {
             return fail(errInfo);
         }
+        /// revert tx after here while error occurs
         // seize
         uint seizeTokens;
         (errInfo, seizeTokens) = comptroller.liquidateCalculateSeizeTokens(dToken, actualRepayAmount);
-        if (bytes(errInfo).length != 0) {
-            return fail(errInfo);
-        }
+        require(bytes(errInfo).length == 0, errInfo);
         DTokenInterface market = DTokenInterface(dToken);
         require(IERC20(dToken).balanceOf(borrower) >= seizeTokens, "liquidate seize too much");
         errInfo = market.seize(msg.sender, borrower, seizeTokens);
-        // revert if there are some effect at other contract
         require(bytes(errInfo).length == 0, errInfo);
         comptroller.liquidateBorrowVerify(dToken, msg.sender, borrower, actualRepayAmount, seizeTokens);
         emit LiquidateBorrow(msg.sender, borrower, actualRepayAmount, dToken, seizeTokens);

@@ -17,8 +17,8 @@ interface DTokenInterface {
     function depositValue() external view returns (uint);
     // return the value of the balance of user underlying asset, represented by USD, the value is exponential
     function userDepositValue(address account) external view returns (uint);
-    // return the value of the specified number of token, the value is exponential
+    // return the value of the specified number of token, the return is exponential
     function tokenValue(uint amount) external view returns (uint);
-    // return the number of token that value equals `value`, the value is scalar
+    // return the number of token that value equals `value`, the param is exponential, the return is scalar
     function tokenAmount(uint value) external view returns (uint);
 }

@@ -321,6 +321,68 @@ like [RevertDeposit](#RevertDeposit)
 
 like [FailDeposit](#FailDeposit)
 
+## Liquidate
+
+### SimpleLiquidateBorrow
+
+Description:
+
+- liquidator liquidate some position of borrower
+
+Param: (market, liquidator, borrower, usedSCContract, repayAmount)
+
+Action:
+
+- borrowPool.liquidateBorrow(usedSCContract, market, borrower, repayAmount, {from: liquidator});
+- comptroller.refreshMarketDeposit()
+
+Expected Results:
+
+- Comptroller state change:
+    - refreshedBlock > before;
+    - totalDeposit == before;
+    - marketDeposit[market] == before;
+    - marketInterestIndex[market] >= before;
+    - userInterestIndex[market][borrower] >= before;
+    - userInterestIndex[market][liquidator] >= before;
+    - supplyIndex[market] >= before;
+    - supplierIndex[market][borrower] >= before;
+    - supplierIndex[market][liquidator] >= before;
+    - userAccrued[borrower] == 0 or >= before;
+    - userAccrued[liquidator] == 0 or >= before;
+    - getSystemLiquidity()[1] >= before && getSystemLiquidity()[2] <= before;
+    - getAccountLiquidity(borrower)[1] <= before && getAccountLiquidity(borrower)[2] >= before;
+    - getAccountLiquidity(liquidator)[1] >= before && getAccountLiquidity(liquidator)[2] <= before;
+    - borrowDistributedBlock >= before;
+    - borrowIndex >= before;
+    - borrowerIndex >= before
+- User asset state change:
+    - market.underlying.balanceOf(borrower) == before;
+    - market.underlying.balanceOf(liquidator) == before;
+    - market.balanceOf(borrower) <= before;
+    - market.balanceOf(liquidator) >= before;
+    - CFGT.balanceOf(borrower)>= before;
+    - CFGT.balanceOf(liquidator)>= before;
+    - CFSC.balanceOf(borrower)>= before;
+    - if usedStableCoinContract == CFSC:
+        - CFSC.balanceOf(liquidator)>= before-repayAmount;
+    - else:
+        - usedStableCoinContract.balanceOf(liquidator) >= before;
+        - CFSC.balanceOf(liquidator)>= before;
+- Borrow state change:
+    - borrowIndex > before;
+    - accrualBlock > before;
+    - totalBorrows >= before-repayAmount;
+    - getBorrows(borrower) >= before-repayAmount;
+
+### RevertLiquidateBorrow
+
+like [RevertDeposit](#RevertDeposit)
+
+### FailLiquidateBorrow
+
+like [FailDeposit](#FailDeposit)
+
 ## SystemConfig
 
 ### SetPublicBorrower
@@ -412,6 +474,98 @@ Action:
 Expected Results:
 
 - comptroller.seizePaused() == state;
+
+### SetPublicBorrowThreshold
+
+Description:
+
+- set public borrow threshold
+
+Param:
+
+- (threshold)
+
+Action:
+
+- comptroller.setPublicBorrowThreshold(threshold)
+
+Expected Results:
+
+- comptroller.publicBorrowThreshold() == threshold;
+
+### SetMaxSystemUtilizationRate
+
+Description:
+
+- set max system utilization rate
+
+Param:
+
+- (rate)
+
+Action:
+
+- comptroller.setMaxSystemUtilizationRate(rate)
+
+Expected Results:
+
+- comptroller.maxSystemUtilizationRate() == rate;
+
+### SetMaxCloseFactor
+
+Description:
+
+- change max close factor of liquidation
+
+Param:
+
+- (factor)
+
+Action:
+
+- comptroller.setMaxCloseFactor(factor)
+
+Expected Results:
+
+- comptroller.maxCloseFactor() == factor;
+
+### SetLiquidationIncentive
+
+Description:
+
+- change liquidation incentive
+
+Param:
+
+- (incentive)
+
+Action:
+
+- comptroller.setLiquidationIncentive(incentive)
+
+Expected Results:
+
+- comptroller.liquidationIncentive() == incentive;
+
+## PriceOracle
+
+### SetPrice
+
+Description:
+
+- set price of asset
+
+Param: (assetAddress, price)
+
+Action:
+
+- oracle.setPrice(assetAddress, price);
+
+Expected Results:
+
+- oracle.getPrice(assetAddress) == price;
+
+> note: asset decimals and calculation decimals
 
 ## CompareMarketProfit
 

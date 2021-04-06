@@ -6,6 +6,6 @@ solidity implementation of cycle finance protocol
 
 - integration test
     - run transfer/repayBorrow/configSystem test case
-    - liquidate borrow
+    - liquidate borrow implementation
 - quantitative integration test
     - use exact amount at assert function

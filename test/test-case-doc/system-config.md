@@ -39,3 +39,27 @@ pause and unpause seize
 
 - [SetSeizePaused](./test-function.md#SetSeizePaused)(true);
 - [SetSeizePaused](./test-function.md#SetSeizePaused)(false);
+
+## config-6
+
+set public borrow threshold
+
+- [SetPublicBorrowThreshold](./test-function.md#SetPublicBorrowThreshold)(0.5);
+
+## config-7
+
+set max system utilization rate
+
+- [SetMaxSystemUtilizationRate](./test-function.md#SetMaxSystemUtilizationRate)(0.95);
+
+## config-8
+
+change max close factor of liquidation
+
+- [SetMaxCloseFactor](./test-function.md#SetMaxCloseFactor)(0.88);
+
+## config-9
+
+change liquidation incentive
+
+- [SetLiquidationIncentive](./test-function.md#SetLiquidationIncentive)(1.05);

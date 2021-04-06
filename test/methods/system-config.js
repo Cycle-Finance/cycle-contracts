@@ -28,6 +28,31 @@ async function SetSeizePaused(ctx, state) {
     assert.equal(contractState, state);
 }
 
+async function SetPublicBorrowThreshold(ctx, threshold) {
+    await ctx.comptroller.setPublicBorrowThreshold(threshold);
+    let contractState = await ctx.comptroller.publicBorrowThreshold();
+    assert.equal(contractState, threshold);
+}
+
+async function SetMaxSystemUtilizationRate(ctx, rate) {
+    await ctx.comptroller.setMaxSystemUtilizationRate(rate);
+    let contractState = await ctx.comptroller.maxSystemUtilizationRate();
+    assert.equal(contractState, rate);
+}
+
+async function SetMaxCloseFactor(ctx, factor) {
+    await ctx.comptroller.setMaxCloseFactor(factor);
+    let contractState = await ctx.comptroller.maxCloseFactor();
+    assert.equal(contractState, factor);
+}
+
+async function SetLiquidationIncentive(ctx, incentive) {
+    await ctx.comptroller.setLiquidationIncentive(incentive);
+    let contractState = await ctx.comptroller.liquidationIncentive();
+    assert.equal(contractState, incentive);
+}
+
 module.exports = {
-    SetPublicBorrower, SetMintPaused, SetBorrowPaused, SetTransferPaused, SetSeizePaused
+    SetPublicBorrower, SetMintPaused, SetBorrowPaused, SetTransferPaused, SetSeizePaused,
+    SetPublicBorrowThreshold, SetMaxSystemUtilizationRate, SetMaxCloseFactor, SetLiquidationIncentive
 }

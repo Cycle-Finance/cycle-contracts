@@ -56,21 +56,6 @@ contract('withdraw test case 1', async (accounts) => {
             oracle: oracle,
             IERC20: IERC20,
         };
-        // transfer asset to other accounts
-        let wbtcAmount = 1000 * (10 ** 8);
-        let usdAmount = 1000000 * (10 ** 6);
-        await wbtc.transfer(accounts[1], wbtcAmount);
-        await wbtc.transfer(accounts[2], wbtcAmount);
-        await wbtc.transfer(accounts[3], wbtcAmount);
-        await wbtc.transfer(accounts[4], wbtcAmount);
-        await usdc.transfer(accounts[1], usdAmount);
-        await usdc.transfer(accounts[2], usdAmount);
-        await usdc.transfer(accounts[3], usdAmount);
-        await usdc.transfer(accounts[4], usdAmount);
-        await usdt.transfer(accounts[1], usdAmount);
-        await usdt.transfer(accounts[2], usdAmount);
-        await usdt.transfer(accounts[3], usdAmount);
-        await usdt.transfer(accounts[4], usdAmount);
     });
     it('withdraw-1-1', async () => {
         let amount = web3.utils.toWei('10');

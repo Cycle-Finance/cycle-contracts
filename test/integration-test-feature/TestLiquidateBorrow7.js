@@ -32,9 +32,9 @@ contract('liquidate-7: If we invoke `seize` function straightly, the tx should b
         let usdt = await USDT.deployed();
         let comptroller = await Comptroller.at(ComptrollerProxy.address)
         let dEther = await DEther.at(await comptroller.markets(0));
-        let dWBTC = await DEther.at(await comptroller.markets(1));
-        let dUSDC = await DEther.at(await comptroller.markets(2));
-        let dUSDT = await DEther.at(await comptroller.markets(3));
+        let dWBTC = await DERC20.at(await comptroller.markets(1));
+        let dUSDC = await DERC20.at(await comptroller.markets(2));
+        let dUSDT = await DERC20.at(await comptroller.markets(3));
         let CFGT = await CycleGovToken.deployed();
         let CFSC = await CycleStableCoin.deployed();
         let borrowPool = await Borrows.at(BorrowsProxy.address);

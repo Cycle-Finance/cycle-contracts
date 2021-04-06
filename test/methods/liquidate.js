@@ -47,10 +47,12 @@ async function simpleLiquidateBorrow(ctx, market, liquidator, borrower, usedSCCo
     assert.ok(liquidatorLiquidityAfter[1].cmp(liquidatorLiquidity[1]) >= 0
         && liquidatorLiquidityAfter[2].cmp(liquidatorLiquidity[2]) <= 0);
     // check asset state change
-    assert.equal(borrowerBalanceStateAfter.underlyingBalance.toString(),
-        borrowerBalanceStateBefore.underlyingBalance.toString());
-    assert.equal(liquidatorBalanceStateAfter.underlyingBalance.toString(),
-        liquidatorBalanceStateBefore.underlyingBalance.toString());
+    if (market.address.toString() !== ctx.dEther.address.toString()) {
+        assert.equal(borrowerBalanceStateAfter.underlyingBalance.toString(),
+            borrowerBalanceStateBefore.underlyingBalance.toString());
+        assert.equal(liquidatorBalanceStateAfter.underlyingBalance.toString(),
+            liquidatorBalanceStateBefore.underlyingBalance.toString());
+    }
     assert.ok(borrowerBalanceStateAfter.dTokenBalance.cmp(borrowerBalanceStateBefore.dTokenBalance) <= 0);
     assert.ok(liquidatorBalanceStateAfter.dTokenBalance.cmp(liquidatorBalanceStateBefore.dTokenBalance) >= 0);
     assert.ok(borrowerBalanceStateAfter.cfgtBalance.cmp(borrowerBalanceStateBefore.cfgtBalance) >= 0);
@@ -75,7 +77,7 @@ async function revertLiquidateBorrow(ctx, market, liquidator, borrower, usedSCCo
     try {
         await ctx.borrowPool.liquidateBorrow(usedSCContract, market.address, borrower, repayAmount, {from: liquidator});
     } catch (e) {
-        console.log('liquidate borrow should be reverted by reason %s', e);
+        console.log('liquidate borrow should be reverted by reason %s', e.toString());
         return;
     }
     throw new Error('should be error');

@@ -174,7 +174,7 @@ contract Borrows is BorrowsStorage, BorrowsInterface, Exponential, ErrorReporter
         if (bytes(errInfo).length != 0) {
             return fail(errInfo);
         }
-        /// revert tx after here while error occurs
+        //////// revert tx after here while error occurs ///////
         // seize
         uint seizeTokens;
         (errInfo, seizeTokens) = comptroller.liquidateCalculateSeizeTokens(dToken, actualRepayAmount);

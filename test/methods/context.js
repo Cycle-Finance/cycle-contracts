@@ -24,7 +24,7 @@ async function comptrollerState(ctx, market, user) {
     let borrowIndex = await ctx.comptroller.borrowIndex();
     let supplySpeed = await ctx.comptroller.supplySpeed();
     let borrowSpeed = await ctx.comptroller.borrowSpeed();
-    let systemUtilizationRate = await ctx.comptroller.systemUtilizationRate();
+    let maxSystemUtilizationRate = await ctx.comptroller.maxSystemUtilizationRate();
     let maxCloseFactor = await ctx.comptroller.maxCloseFactor();
     let liquidationIncentive = await ctx.comptroller.liquidationIncentive();
     let borrowPaused = await ctx.comptroller.borrowPaused();
@@ -55,7 +55,7 @@ async function comptrollerState(ctx, market, user) {
         borrowIndex: borrowIndex,
         supplySpeed: supplySpeed,
         borrowSpeed: borrowSpeed,
-        systemUtilizationRate: systemUtilizationRate,
+        maxSystemUtilizationRate: maxSystemUtilizationRate,
         maxCloseFactor: maxCloseFactor,
         liquidationIncentive: liquidationIncentive,
         borrowPaused: borrowPaused,

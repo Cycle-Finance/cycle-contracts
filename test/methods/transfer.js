@@ -48,10 +48,12 @@ async function simpleTransfer(ctx, market, from, to, amount) {
         && toLiquidityAfter[2].cmp(toLiquidityBefore[2]) <= 0);
     // check asset state change
     let bnAmount = web3.utils.toBN(amount);
-    assert.equal(fromBalanceStateAfter.underlyingBalance.toString(),
-        fromBalanceStateBefore.underlyingBalance.toString());
-    assert.equal(toBalanceStateAfter.underlyingBalance.toString(),
-        toBalanceStateBefore.underlyingBalance.toString());
+    if (market.address.toString() !== ctx.dEther.address.toString()) {
+        assert.equal(fromBalanceStateAfter.underlyingBalance.toString(),
+            fromBalanceStateBefore.underlyingBalance.toString());
+        assert.equal(toBalanceStateAfter.underlyingBalance.toString(),
+            toBalanceStateBefore.underlyingBalance.toString());
+    }
     assert.equal(fromBalanceStateAfter.dTokenBalance.toString(),
         fromBalanceStateBefore.dTokenBalance.add(bnAmount).toString());
     assert.equal(toBalanceStateAfter.dTokenBalance.toString(),
@@ -73,7 +75,7 @@ async function revertTransfer(market, from, to, amount) {
     try {
         await market.borrow(to, amount, {from: from});
     } catch (e) {
-        console.log('transfer should be reverted by reason %s', e);
+        console.log('transfer should be reverted by reason %s', e.toString());
         return;
     }
     throw new Error('should be error');

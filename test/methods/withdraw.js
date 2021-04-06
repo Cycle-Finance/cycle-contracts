@@ -31,8 +31,10 @@ async function simpleWithdraw(ctx, market, user, amount) {
         && userLiquidityAfter[2].cmp(userLiquidityBefore[2]) >= 0);
     // check asset state change
     let bnAmount = web3.utils.toBN(amount);
-    assert.equal((userBalanceStateAfter.underlyingBalance.sub(bnAmount)).toString(),
-        userBalanceStateBefore.underlyingBalance.toString());
+    if (market.address.toString() !== ctx.dEther.address.toString()) {
+        assert.equal((userBalanceStateAfter.underlyingBalance.sub(bnAmount)).toString(),
+            userBalanceStateBefore.underlyingBalance.toString());
+    }
     assert.equal((userBalanceStateAfter.dTokenBalance.add(bnAmount)).toString(),
         userBalanceStateBefore.dTokenBalance.toString());
     // check borrow state change
@@ -68,7 +70,7 @@ async function revertWithdraw(ctx, market, user, amount) {
     try {
         await market.redeem(amount, {from: user});
     } catch (e) {
-        console.log('withdraw should be reverted by reason %s', e);
+        console.log('withdraw should be reverted by reason %s', e.toString());
         return;
     }
     throw new Error('should be error');

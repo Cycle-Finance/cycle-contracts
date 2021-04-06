@@ -34,8 +34,11 @@ async function simpleBorrow(ctx, market, user, amount) {
         && userLiquidityAfter[2].cmp(userLiquidityBefore[2]) >= 0);
     // check asset state change
     let bnAmount = web3.utils.toBN(amount);
-    assert.equal(userBalanceStateAfter.underlyingBalance.toString(),
-        userBalanceStateBefore.underlyingBalance.toString());
+
+    if (market.address.toString() !== ctx.dEther.address.toString()) {
+        assert.equal(userBalanceStateAfter.underlyingBalance.toString(),
+            userBalanceStateBefore.underlyingBalance.toString());
+    }
     assert.equal(userBalanceStateAfter.dTokenBalance.toString(),
         userBalanceStateBefore.dTokenBalance.toString());
     assert.ok(userBalanceStateAfter.cfgtBalance.cmp(userBalanceStateBefore.cfgtBalance) >= 0);
@@ -52,7 +55,7 @@ async function revertBorrow(ctx, user, amount) {
     try {
         await ctx.borrowPool.borrow(amount, {from: user});
     } catch (e) {
-        console.log('borrow should be reverted by reason %s', e);
+        console.log('borrow should be reverted by reason %s', e.toString());
         return;
     }
     throw new Error('should be error');

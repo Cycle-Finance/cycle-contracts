@@ -28,11 +28,11 @@ contract('deposit test case 1-4', async (accounts) => {
         let wbtc = await WBTC.deployed();
         let usdc = await USDC.deployed();
         let usdt = await USDT.deployed();
-        let comptroller = await Comptroller.at(ComptrollerProxy.address)
+        let comptroller = await Comptroller.at(ComptrollerProxy.address);
         let dEther = await DEther.at(await comptroller.markets(0));
-        let dWBTC = await DEther.at(await comptroller.markets(1));
-        let dUSDC = await DEther.at(await comptroller.markets(2));
-        let dUSDT = await DEther.at(await comptroller.markets(3));
+        let dWBTC = await DERC20.at(await comptroller.markets(1));
+        let dUSDC = await DERC20.at(await comptroller.markets(2));
+        let dUSDT = await DERC20.at(await comptroller.markets(3));
         let CFGT = await CycleGovToken.deployed();
         let CFSC = await CycleStableCoin.deployed();
         let borrowPool = await Borrows.at(BorrowsProxy.address);
@@ -59,17 +59,8 @@ contract('deposit test case 1-4', async (accounts) => {
         let wbtcAmount = 1000 * (10 ** 8);
         let usdAmount = 1000000 * (10 ** 6);
         await wbtc.transfer(accounts[1], wbtcAmount);
-        await wbtc.transfer(accounts[2], wbtcAmount);
-        await wbtc.transfer(accounts[3], wbtcAmount);
-        await wbtc.transfer(accounts[4], wbtcAmount);
         await usdc.transfer(accounts[1], usdAmount);
-        await usdc.transfer(accounts[2], usdAmount);
-        await usdc.transfer(accounts[3], usdAmount);
-        await usdc.transfer(accounts[4], usdAmount);
         await usdt.transfer(accounts[1], usdAmount);
-        await usdt.transfer(accounts[2], usdAmount);
-        await usdt.transfer(accounts[3], usdAmount);
-        await usdt.transfer(accounts[4], usdAmount);
     });
     it('deposit-1: accounts[0] deposit 10 ETH', async () => {
         let amount = web3.utils.toWei('10');

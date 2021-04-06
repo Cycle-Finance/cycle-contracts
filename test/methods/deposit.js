@@ -35,8 +35,10 @@ async function simpleDeposit(ctx, market, user, amount) {
         && userLiquidityAfter[0].cmp(userLiquidityBefore[0]) <= 0);
     // check asset state change
     let bnAmount = web3.utils.toBN(amount);
-    assert.equal((userBalanceStateAfter.underlyingBalance.add(bnAmount)).toString(),
-        userBalanceStateBefore.underlyingBalance.toString());
+    if (market.address.toString() !== ctx.dEther.address.toString()) {
+        assert.equal((userBalanceStateAfter.underlyingBalance.add(bnAmount)).toString(),
+            userBalanceStateBefore.underlyingBalance.toString());
+    }
     assert.equal((userBalanceStateAfter.dTokenBalance.sub(bnAmount)).toString(),
         userBalanceStateBefore.dTokenBalance.toString());
     assert.ok(userBalanceStateAfter.cfgtBalance.cmp(userBalanceStateBefore.cfgtBalance) >= 0);
@@ -50,9 +52,9 @@ async function simpleDeposit(ctx, market, user, amount) {
 
 async function revertDeposit(ctx, market, user, amount) {
     try {
-        await deposit(market, user, amount);
+        await deposit(ctx, market, user, amount);
     } catch (e) {
-        console.log('deposit should be reverted by reason %s', e);
+        console.log('deposit should be reverted by reason %s', e.toString());
         return;
     }
     throw new Error('should be error');

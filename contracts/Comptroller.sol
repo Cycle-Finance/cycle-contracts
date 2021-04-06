@@ -342,8 +342,8 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
             borrowLimit = add_(borrowLimit, assetBorrowLimit);
         }
         uint totalBorrows = borrowPool.getBorrows(account) + borrowAmount;
-        (MathError err2,Exp memory hypotheticalBorrows) = getExp(totalBorrows, 1);
-        if (err2 != 0) {
+        (MathError err2, Exp memory hypotheticalBorrows) = getExp(totalBorrows, 1);
+        if (err2 != MathError.NO_ERROR) {
             return (err2, 0, 0);
         }
         if (lessThanExp(hypotheticalBorrows, borrowLimit)) {

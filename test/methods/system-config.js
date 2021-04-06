@@ -5,8 +5,8 @@ async function SetPublicBorrower(ctx, publicBorrower) {
 }
 
 async function SetMintPaused(ctx, market, state) {
-    await ctx.comptroller.setMintPaused(market, state);
-    let contractState = await ctx.comptroller.mintPaused(market);
+    await ctx.comptroller.setMintPaused(market.address, state);
+    let contractState = await ctx.comptroller.mintPaused(market.address);
     assert.equal(contractState, state);
 }
 

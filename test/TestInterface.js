@@ -81,10 +81,10 @@ contract('Interface test', async (accounts) => {
         await comptroller.setCollateralFactor(testMarket, web3.utils.toWei('0.75'));
         // check system utilization rate
         let sysUR = web3.utils.toWei('0.8');
-        await comptroller.setSystemUtilizationRate(sysUR);
-        let newSysUR = await comptroller.systemUtilizationRate();
+        await comptroller.setMaxSystemUtilizationRate(sysUR);
+        let newSysUR = await comptroller.maxSystemUtilizationRate();
         assert.equal(sysUR, newSysUR);
-        await comptroller.setSystemUtilizationRate(web3.utils.toWei('0.75'));
+        await comptroller.setMaxSystemUtilizationRate(web3.utils.toWei('0.75'));
         // check max close factor
         let maxCloseFactor = web3.utils.toWei('0.75');
         await comptroller.setMaxCloseFactor(maxCloseFactor);

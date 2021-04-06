@@ -70,12 +70,6 @@ all market deposit
 
 ## deposit-6
 
-user deposit 0 at any market
-
-test at each simple deposit.
-
-## deposit-7
-
 deposit should revert when mint paused.
 
 - [SetMintPaused](./test-function.md#SetMintPaused)(dEther, true);
@@ -105,3 +99,9 @@ deposit should revert when mint paused.
 - [SetMintPaused](./test-function.md#SetMintPaused)(dUSDT, false);
 - [SimpleDeposit](./test-function.md#SimpleDeposit)(dUSDT, accounts[0], 0)
 - [SimpleDeposit](./test-function.md#SimpleDeposit)(dUSDT, accounts[1], 1 USDT)
+
+## deposit-7
+
+user deposit 0 at any market
+
+test at each simple deposit.

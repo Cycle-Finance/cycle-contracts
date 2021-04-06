@@ -62,17 +62,8 @@ contract('borrow test case 4', async (accounts) => {
         let wbtcAmount = 1000 * (10 ** 8);
         let usdAmount = 1000000 * (10 ** 6);
         await wbtc.transfer(accounts[1], wbtcAmount);
-        await wbtc.transfer(accounts[2], wbtcAmount);
-        await wbtc.transfer(accounts[3], wbtcAmount);
-        await wbtc.transfer(accounts[4], wbtcAmount);
         await usdc.transfer(accounts[1], usdAmount);
-        await usdc.transfer(accounts[2], usdAmount);
-        await usdc.transfer(accounts[3], usdAmount);
-        await usdc.transfer(accounts[4], usdAmount);
         await usdt.transfer(accounts[1], usdAmount);
-        await usdt.transfer(accounts[2], usdAmount);
-        await usdt.transfer(accounts[3], usdAmount);
-        await usdt.transfer(accounts[4], usdAmount);
         // deposit system liquidity and set public borrower
         await deposit.simpleDeposit(ctx, ctx.dEther, accounts[0], web3.utils.toWei('1'));
         await deposit.simpleDeposit(ctx, ctx.dWBTC, accounts[0], 10 ** 8);

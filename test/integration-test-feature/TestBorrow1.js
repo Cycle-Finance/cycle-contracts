@@ -89,14 +89,14 @@ contract('borrow test case 1', async (accounts) => {
         await borrow.simpleBorrow(ctx, ctx.dWBTC, accounts[0], 0);
     });
     it('borrow-1-4: borrow USDC', async () => {
-        let amount = 10 * (10 ** 6);
+        let amount = 10000 * (10 ** 6);
         await deposit.simpleDeposit(ctx, ctx.dUSDC, accounts[2], amount);
         let borrowAmount = web3.utils.toWei('7000');
         await borrow.simpleBorrow(ctx, ctx.dUSDC, accounts[2], borrowAmount);
         await borrow.simpleBorrow(ctx, ctx.dUSDC, accounts[0], 0);
     });
     it('borrow-1-5: borrow USDT', async () => {
-        let amount = 10 * (10 ** 6);
+        let amount = 10000 * (10 ** 6);
         await deposit.simpleDeposit(ctx, ctx.dUSDT, accounts[3], amount);
         let borrowAmount = web3.utils.toWei('7000');
         await borrow.simpleBorrow(ctx, ctx.dUSDT, accounts[3], borrowAmount);

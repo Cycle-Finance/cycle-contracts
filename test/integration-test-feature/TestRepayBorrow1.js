@@ -95,7 +95,7 @@ contract('repayBorrow-1: the debt of borrower is 0', async (accounts) => {
         await repayBorrow.simpleRepayBorrowBehalf(ctx, ctx.dEther, accounts[1], accounts[0], ctx.dUSDT, maxUint256);
         await repayBorrow.simpleRepayBorrowBehalf(ctx, ctx.dEther, accounts[1], accounts[0], ctx.CFSC, maxUint256);
     });
-    it('repayBorrow-1-1: repay some value', async () => {
+    it('repayBorrow-1-2: repay some value', async () => {
         await repayBorrow.revertRepayBorrow(ctx, accounts[0], ctx.USDC, 100);
         await repayBorrow.revertRepayBorrow(ctx, accounts[0], ctx.USDT, 100);
         await repayBorrow.revertRepayBorrow(ctx, accounts[0], ctx.CFSC, 100);

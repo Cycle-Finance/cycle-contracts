@@ -213,11 +213,11 @@ illegal liquidation amount.
 liquidate 0 would fail, the reason is "illegal liquidation amount". If we liquidate -1, the reason is "liquidate too
 much".
 
-- [FailLiquidateBorrow](./test-function.md#FailLiquidateBorrow)(dEther, accounts[0], accounts[0], USDCContract, 0, "
+- [FailLiquidateBorrow](./test-function.md#FailLiquidateBorrow)(dEther, accounts[1], accounts[0], USDCContract, 0, "
   illegal liquidation amount")
-- [FailLiquidateBorrow](./test-function.md#FailLiquidateBorrow)(dEther, accounts[0], accounts[0], USDTContract, 0, "
+- [FailLiquidateBorrow](./test-function.md#FailLiquidateBorrow)(dEther, accounts[1], accounts[0], USDTContract, 0, "
   illegal liquidation amount")
-- [FailLiquidateBorrow](./test-function.md#FailLiquidateBorrow)(dEther, accounts[0], accounts[0], CFSCContract, 0, "
+- [FailLiquidateBorrow](./test-function.md#FailLiquidateBorrow)(dEther, accounts[1], accounts[0], CFSCContract, 0, "
   illegal liquidation amount")
 
 ## liquidate-6
@@ -252,6 +252,10 @@ we can liquidate debts.
 let we liquidate seize too much, tx should be reverted.
 
 - [RevertLiquidateBorrow](./test-function.md#RevertLiquidateBorrow)(dEther, accounts[1], accounts[0], CFSCContract,
+  54000 CFSC)
+- [RevertLiquidateBorrow](./test-function.md#RevertLiquidateBorrow)(dEther, accounts[1], accounts[0], USDCContract,
+  54000 CFSC)
+- [RevertLiquidateBorrow](./test-function.md#RevertLiquidateBorrow)(dEther, accounts[1], accounts[0], USDTContract,
   54000 CFSC)
 
 ### liquidate-6-2
@@ -289,11 +293,7 @@ If we invoke `seize` function straightly, the tx should be failed.
 
 The case is very simple, so we don't use any [test-function], we call contract straightly.
 
-- dEther.seize(accounts[1], accounts[0], 100);
-    - tx failed: borrow pool mismatch;
-- dWBTC.seize(accounts[1], accounts[0], 100);
-    - tx failed: borrow pool mismatch;
-- dUSDC.seize(accounts[1], accounts[0], 100);
-    - tx failed: borrow pool mismatch;
-- dUSDT.seize(accounts[1], accounts[0], 100);
-    - tx failed: borrow pool mismatch;
+- [FailSeize](./test-function.md#FailSeize)(dEther, accounts[1], accounts[0], 100, "borrow pool mismatch")
+- [FailSeize](./test-function.md#FailSeize)(dWBTC, accounts[1], accounts[0], 100, "borrow pool mismatch")
+- [FailSeize](./test-function.md#FailSeize)(dUSDC, accounts[1], accounts[0], 100, "borrow pool mismatch")
+- [FailSeize](./test-function.md#FailSeize)(dUSDT, accounts[1], accounts[0], 100, "borrow pool mismatch")

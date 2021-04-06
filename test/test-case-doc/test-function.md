@@ -383,6 +383,10 @@ like [RevertDeposit](#RevertDeposit)
 
 like [FailDeposit](#FailDeposit)
 
+### FailSeize
+
+like [FailDeposit](#FailDeposit)
+
 ## SystemConfig
 
 ### SetPublicBorrower

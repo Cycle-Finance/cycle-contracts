@@ -52,7 +52,18 @@ async function SetLiquidationIncentive(ctx, incentive) {
     assert.equal(contractState, incentive);
 }
 
+async function SetPrice(ctx, asset, price) {
+    await ctx.oracle.setPrice(asset.address, price);
+    let contractState = await ctx.oracle.getPrice(asset.address);
+    let expScale = web3.utils.toWei('1');
+    let decimals = await asset.decimals();
+    let decimalsScale = web3.utils.toBN(10).pow(decimals);
+    let correctPrice = price.mul(expScale).div(decimalsScale);
+    assert.equal(contractState.toString(), correctPrice.toString());
+}
+
 module.exports = {
     SetPublicBorrower, SetMintPaused, SetBorrowPaused, SetTransferPaused, SetSeizePaused,
-    SetPublicBorrowThreshold, SetMaxSystemUtilizationRate, SetMaxCloseFactor, SetLiquidationIncentive
+    SetPublicBorrowThreshold, SetMaxSystemUtilizationRate, SetMaxCloseFactor, SetLiquidationIncentive,
+    SetPrice
 }

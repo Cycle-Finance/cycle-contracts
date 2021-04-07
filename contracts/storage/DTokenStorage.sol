@@ -7,7 +7,16 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "../ErrorReporter.sol";
 import "../Oracle.sol";
 
-abstract contract DTokenStorage is ERC20, Ownable, ErrorReporter {
+abstract contract DTokenStorage is Ownable, ErrorReporter {
+    mapping(address => uint256) public balanceOf;
+
+    mapping(address => mapping(address => uint256)) public allowance;
+
+    uint256 public totalSupply;
+
+    string public name;
+    string public symbol;
+    uint8 public decimals;
 
     // uint constant public EXCHANGE_RATE = 1;
 
@@ -38,10 +47,16 @@ abstract contract DTokenStorage is ERC20, Ownable, ErrorReporter {
         _notEntered = true;
     }
 
-    constructor(string memory name, string memory symbol, address _underlyingAsset)ERC20(name, symbol) Ownable(){
+    constructor(string memory _name, string memory _symbol, address _underlyingAsset)Ownable(){
+        name = _name;
+        symbol = _symbol;
         // check underlying is erc20
         if (_underlyingAsset != address(0)) {
             require(IERC20(_underlyingAsset).balanceOf(address(this)) >= 0, "illegal erc20 underlying asset");
+            decimals = uint8(Decimals(_underlyingAsset).decimals());
+        } else {
+            // eth decimals
+            decimals = 18;
         }
         underlyingAsset = _underlyingAsset;
         _notEntered = true;

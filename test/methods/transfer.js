@@ -42,8 +42,8 @@ async function simpleTransfer(ctx, market, from, to, amount) {
     let fromLiquidityAfter = fromComptrollerStateAfter.userLiquidity;
     assert.ok(fromLiquidityAfter[1].cmp(fromLiquidityBefore[1]) <= 0
         && fromLiquidityAfter[2].cmp(fromLiquidityBefore[2]) >= 0);
-    let toLiquidityBefore = fromComptrollerStateBefore.userLiquidity;
-    let toLiquidityAfter = fromComptrollerStateAfter.userLiquidity;
+    let toLiquidityBefore = toComptrollerStateBefore.userLiquidity;
+    let toLiquidityAfter = toComptrollerStateAfter.userLiquidity;
     assert.ok(toLiquidityAfter[1].cmp(toLiquidityBefore[1]) >= 0
         && toLiquidityAfter[2].cmp(toLiquidityBefore[2]) <= 0);
     // check asset state change
@@ -55,25 +55,25 @@ async function simpleTransfer(ctx, market, from, to, amount) {
             toBalanceStateBefore.underlyingBalance.toString());
     }
     assert.equal(fromBalanceStateAfter.dTokenBalance.toString(),
-        fromBalanceStateBefore.dTokenBalance.add(bnAmount).toString());
+        fromBalanceStateBefore.dTokenBalance.sub(bnAmount).toString());
     assert.equal(toBalanceStateAfter.dTokenBalance.toString(),
         toBalanceStateBefore.dTokenBalance.add(bnAmount).toString());
     assert.ok(fromBalanceStateAfter.cfgtBalance.cmp(fromBalanceStateBefore.cfgtBalance) >= 0);
     assert.ok(toBalanceStateAfter.cfgtBalance.cmp(toBalanceStateBefore.cfgtBalance) >= 0);
-    assert.ok(fromBalanceStateAfter.cfscBalance.cmp(fromBalanceStateBefore.cfscBalance.add(bnAmount)) >= 0);
-    assert.ok(toBalanceStateAfter.cfscBalance.cmp(toBalanceStateBefore.cfscBalance.add(bnAmount)) >= 0);
+    assert.ok(fromBalanceStateAfter.cfscBalance.cmp(fromBalanceStateBefore.cfscBalance) >= 0);
+    assert.ok(toBalanceStateAfter.cfscBalance.cmp(toBalanceStateBefore.cfscBalance) >= 0);
     // check borrow state change
     assert.ok(fromBorrowPoolStateAfter.borrowIndex.cmp(fromBorrowPoolStateBefore.borrowIndex) > 0);
     assert.ok(fromBorrowPoolStateAfter.accrualBlock.cmp(fromBorrowPoolStateBefore.accrualBlock) > 0);
-    assert.ok(fromBorrowPoolStateAfter.totalBorrows.cmp(fromBorrowPoolStateBefore.totalBorrows.add(bnAmount)) >= 0);
-    assert.ok(fromBorrowPoolStateAfter.userBorrows.cmp(fromBorrowPoolStateBefore.userBorrows.add(bnAmount)) >= 0);
-    assert.ok(toBorrowPoolStateAfter.userBorrows.cmp(toBorrowPoolStateBefore.userBorrows.add(bnAmount)) >= 0);
+    assert.ok(fromBorrowPoolStateAfter.totalBorrows.cmp(fromBorrowPoolStateBefore.totalBorrows) >= 0);
+    assert.ok(fromBorrowPoolStateAfter.userBorrows.cmp(fromBorrowPoolStateBefore.userBorrows) >= 0);
+    assert.ok(toBorrowPoolStateAfter.userBorrows.cmp(toBorrowPoolStateBefore.userBorrows) >= 0);
 }
 
 
 async function revertTransfer(market, from, to, amount) {
     try {
-        await market.borrow(to, amount, {from: from});
+        await market.transfer(to, amount, {from: from});
     } catch (e) {
         console.log('transfer should be reverted by reason %s', e.toString());
         return;
@@ -83,7 +83,7 @@ async function revertTransfer(market, from, to, amount) {
 
 async function failTransfer(market, from, to, amount, reason) {
     let reasonMatched = false;
-    let tx = await market.borrow(to, amount, {from: from});
+    let tx = await market.transfer(to, amount, {from: from});
     for (let i = 0; i < tx.logs.length; i++) {
         let log = tx.logs[i];
         if (log.event === "Fail") {

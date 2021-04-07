@@ -321,7 +321,6 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
     function getHypotheticalAccountLiquidity(address account, address dToken, uint redeemTokens, uint borrowAmount)
     internal view returns (MathError, uint, uint){
         Exp memory borrowLimit;
-        bool dTokenExisted = false;
         for (uint i = 0; i < markets.length; i++) {
             address market = markets[i];
             uint balance = IERC20(market).balanceOf(account);
@@ -331,7 +330,6 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
                     return (err, 0, 0);
                 }
                 balance = hypotheticalBalance;
-                dTokenExisted = true;
             }
             Exp memory userDeposit = Exp(DTokenInterface(market).tokenValue(balance));
             Exp memory factor = Exp(collateralFactor[market]);

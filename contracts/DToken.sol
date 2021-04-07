@@ -13,26 +13,79 @@ abstract contract DToken is DTokenStorage, Exponential {
 
     event Mint(address minter, uint amount);
     event Redeem(address redeemer, uint amount);
-    event Seize(address liquidator, address borrower, uint amount);
+
+    event Transfer(address indexed from, address indexed to, uint256 value);
+    event Approval(address indexed owner, address indexed spender, uint256 value);
 
     constructor(string memory name, string memory symbol, address _underlyingAsset)
     DTokenStorage(name, symbol, _underlyingAsset) {}
 
 
-    function transferIn(address from, uint amount) internal virtual returns (uint);
+    /* ERC-20 method */
 
-    function transferOut(address payable to, uint amount) internal virtual;
+    function transfer(address recipient, uint256 amount) public returns (bool) {
+        return _transfer(msg.sender, recipient, amount);
+    }
 
-    function transfer(address recipient, uint256 amount) public override returns (bool) {
-        string memory errMsg = comptroller.transferAllowed(address(this), msg.sender, recipient, amount);
+    function approve(address spender, uint amount) public returns (bool){
+        _approve(msg.sender, spender, amount);
+        return true;
+    }
+
+    function transferFrom(address sender, address recipient, uint256 amount) public returns (bool) {
+        if (!_transfer(sender, recipient, amount)) {
+            return false;
+        }
+        _approve(sender, msg.sender, sub_(allowance[sender][msg.sender], amount));
+        return true;
+    }
+
+    function _transfer(address sender, address recipient, uint256 amount) internal returns (bool) {
+        require(sender != address(0), "ERC20: transfer from the zero address");
+        require(recipient != address(0), "ERC20: transfer to the zero address");
+
+        string memory errMsg = comptroller.transferAllowed(address(this), sender, recipient, amount);
         if (bytes(errMsg).length != 0) {
             fail(errMsg);
             return false;
         }
-        _transfer(_msgSender(), recipient, amount);
+
+        balanceOf[sender] = sub_(balanceOf[sender], amount);
+        balanceOf[recipient] = add_(balanceOf[recipient], amount);
+
         comptroller.transferVerify(address(this), msg.sender, recipient, amount);
+
+        emit Transfer(sender, recipient, amount);
         return true;
     }
+
+    function _approve(address owner, address spender, uint256 amount) internal {
+        require(owner != address(0), "ERC20: approve from the zero address");
+        require(spender != address(0), "ERC20: approve to the zero address");
+
+        allowance[owner][spender] = amount;
+        emit Approval(owner, spender, amount);
+    }
+
+    function _mint(address account, uint256 amount) internal {
+        require(account != address(0), "ERC20: mint to the zero address");
+
+        totalSupply = add_(totalSupply, amount);
+        balanceOf[account] = add_(balanceOf[account], amount);
+        emit Transfer(address(0), account, amount);
+    }
+
+    function _burn(address account, uint256 amount) internal {
+        require(account != address(0), "ERC20: burn from the zero address");
+
+        balanceOf[account] = sub_(balanceOf[account], amount);
+        totalSupply = sub_(totalSupply, amount);
+        emit Transfer(account, address(0), amount);
+    }
+
+    function transferIn(address from, uint amount) internal virtual returns (uint);
+
+    function transferOut(address payable to, uint amount) internal virtual;
 
     function mintInternal(uint mintAmount) internal nonReentrant returns (string memory){
         string memory errMsg = comptroller.mintAllowed(address(this), msg.sender, mintAmount);
@@ -48,13 +101,13 @@ abstract contract DToken is DTokenStorage, Exponential {
 
     function redeemInternal(uint redeemAmount) internal nonReentrant returns (string memory){
         if (redeemAmount == uint(- 1)) {
-            redeemAmount = balanceOf(msg.sender);
+            redeemAmount = balanceOf[msg.sender];
         }
         string memory errMsg = comptroller.redeemAllowed(address(this), msg.sender, redeemAmount);
         if (bytes(errMsg).length != 0) {
             return fail(errMsg);
         }
-        if (redeemAmount > balanceOf(msg.sender)) {
+        if (redeemAmount > balanceOf[msg.sender]) {
             return "insufficient dToken balance";
         }
         _burn(msg.sender, redeemAmount);
@@ -72,16 +125,16 @@ abstract contract DToken is DTokenStorage, Exponential {
         }
         _transfer(borrower, liquidator, amount);
         comptroller.seizeVerify(address(this), msg.sender, liquidator, borrower, amount);
-        emit Seize(liquidator, borrower, amount);
+        emit Transfer(borrower, liquidator, amount);
         return "";
     }
 
     function depositValue() public view returns (uint){
-        return tokenValue(totalSupply());
+        return tokenValue(totalSupply);
     }
 
     function userDepositValue(address user) public view returns (uint){
-        return tokenValue(balanceOf(user));
+        return tokenValue(balanceOf[user]);
     }
 
     function tokenValue(uint amount) public view returns (uint){

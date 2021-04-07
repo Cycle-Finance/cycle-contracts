@@ -30,7 +30,7 @@ contract('transfer test case', async (accounts) => {
         let wbtc = await WBTC.deployed();
         let usdc = await USDC.deployed();
         let usdt = await USDT.deployed();
-        let comptroller = await Comptroller.at(ComptrollerProxy.address)
+        let comptroller = await Comptroller.at(ComptrollerProxy.address);
         let dEther = await DEther.at(await comptroller.markets(0));
         let dWBTC = await DERC20.at(await comptroller.markets(1));
         let dUSDC = await DERC20.at(await comptroller.markets(2));
@@ -58,7 +58,7 @@ contract('transfer test case', async (accounts) => {
             IERC20: IERC20,
         };
         let amount = 10000 * (10 ** 6);
-        await USDC.approve(dUSDC.address, amount);
+        await usdc.approve(dUSDC.address, amount * 10);
         await deposit.simpleDeposit(ctx, dUSDC, accounts[0], amount);
     });
     it('transfer-1: transfer 0', async () => {
@@ -75,7 +75,7 @@ contract('transfer test case', async (accounts) => {
         await borrow.simpleBorrow(ctx, ctx.dUSDC, accounts[0], web3.utils.toWei('7000'));
         await transfer.simpleTransfer(ctx, ctx.dUSDC, accounts[0], accounts[1], 0);
         await transfer.simpleTransfer(ctx, ctx.dUSDC, accounts[0], accounts[1], 100 * (10 ** 6));
-        await transfer.failTransfer(ctx.dUSDC, accounts[0], accounts[1], 10000 * (10 ** 6),
+        await transfer.failTransfer(ctx.dUSDC, accounts[0], accounts[1], 9800 * (10 ** 6),
             "insufficient liquidity");
     });
     it('transfer-5: transfer paused', async () => {
@@ -84,9 +84,9 @@ contract('transfer test case', async (accounts) => {
         await transfer.revertTransfer(ctx.dUSDC, accounts[0], accounts[1], 100 * (10 ** 6));
         await transfer.revertTransfer(ctx.dUSDC, accounts[0], accounts[1], 100000 * (10 ** 6));
         await sysConfig.SetTransferPaused(ctx, false);
-        await transfer.revertTransfer(ctx.dUSDC, accounts[0], accounts[1], 0);
-        await transfer.revertTransfer(ctx.dUSDC, accounts[0], accounts[1], 2 * (10 ** 6));
-        await transfer.failTransfer(ctx.dUSDC, accounts[0], accounts[1], 10000 * (10 ** 6),
+        await transfer.simpleTransfer(ctx, ctx.dUSDC, accounts[0], accounts[1], 0);
+        await transfer.simpleTransfer(ctx, ctx.dUSDC, accounts[0], accounts[1], 2 * (10 ** 6));
+        await transfer.failTransfer(ctx.dUSDC, accounts[0], accounts[1], 9000 * (10 ** 6),
             "insufficient liquidity");
     });
 });

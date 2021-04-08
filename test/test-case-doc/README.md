@@ -53,3 +53,36 @@ Case implementation locate here: [Integration Test Feature](../integration-test-
 
 assert exact amount change for above integration test case.The above test case is functional qualitative test, we need
 more accurate quantitative test to ensure the precise operation of the system.
+
+#### Basic Variable
+
+There are two parts of variable is system basic variable: outsides input and system config param.
+
+> note: some system parameters are only used for comparison threshold, not for calculation, so we don't think about them.
+
+System config param:
+
+| Variable | Desc |
+| --- | --- |
+| comptroller.supplySpeed | CFGT distribution num per block of supplier |
+| comptroller.borrowSpeed | CFGT distribution num per block of borrower |
+| comptroller.collateralFactor | deposit discount factor used in borrow limit calculation |
+| comptroller.liquidationIncentive | liquidation bonus factor |
+| borrowPool.reserveFactor | interest income ration of whole interest |
+| interestRateModel.multiplierPerBlock | param used in interest calculation |
+| interestRateModel.baseRatePerBlock | param used in interest calculation |
+
+Outsides input:
+
+| Variable | Desc |
+| --- | --- |
+| Oracle.price | price of diverse asset |
+| DToken.balanceOf | user deposit amount |
+| Borrows.accountBorrows | user borrows |
+
+#### Dependent Variable
+
+The change of basic variable will cause the change of dependent variable.
+
+All state of contracts both are dependent variable, we should check the contract state change with exact amount after
+user operation. That is **Exact Quantitative Test**.

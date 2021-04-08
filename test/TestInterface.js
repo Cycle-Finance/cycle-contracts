@@ -254,12 +254,30 @@ contract('Interface test', async (accounts) => {
         assert.equal(dWBTCDepositValue.toString(), comptrollerDWBTCDeposit.toString());
         assert.equal(dUSDCDepositValue.toString(), comptrollerDUSDCDeposit.toString());
         assert.equal(dUSDTDepositValue.toString(), comptrollerDUSDTDeposit.toString());
+        // approve
+        await dEther.approve(accounts[1], etherAmount);
+        await dWBTC.approve(accounts[1], wbtcAmount);
+        await dUSDC.approve(accounts[1], usdcAmount);
+        await dUSDT.approve(accounts[1], usdtAmount);
+        // check allowance
+        let dEtherAllowance = await dEther.allowance(accounts[0], accounts[1]);
+        let dWBTCAllowance = await dWBTC.allowance(accounts[0], accounts[1]);
+        let dUSDCAllowance = await dUSDC.allowance(accounts[0], accounts[1]);
+        let dUSDTAllowance = await dUSDT.allowance(accounts[0], accounts[1]);
+        assert.equal(dEtherAllowance.toString(), etherAmount.toString());
+        assert.equal(dWBTCAllowance.toString(), wbtcAmount.toString());
+        assert.equal(dUSDCAllowance.toString(), usdcAmount.toString());
+        assert.equal(dUSDTAllowance.toString(), usdtAmount.toString());
         // transfer
-        await dEther.transfer(accounts[1], etherAmount);
-        await dWBTC.transfer(accounts[1], wbtcAmount);
-        await dUSDC.transfer(accounts[1], usdcAmount);
-        await dUSDT.transfer(accounts[1], usdtAmount);
-        // TODO: approve and transfer from
+        await dEther.transfer(accounts[1], dEtherAmount.divn(2));
+        await dWBTC.transfer(accounts[1], dWBTCAmount.divn(2));
+        await dUSDC.transfer(accounts[1], dUSDCAmount.divn(2));
+        await dUSDT.transfer(accounts[1], dUSDTAmount.divn(2));
+        // transfer from
+        await dEther.transferFrom(accounts[0], accounts[1], dEtherAmount.divn(2), {from: accounts[1]});
+        await dWBTC.transferFrom(accounts[0], accounts[1], dWBTCAmount.divn(2), {from: accounts[1]});
+        await dUSDC.transferFrom(accounts[0], accounts[1], dUSDCAmount.divn(2), {from: accounts[1]});
+        await dUSDT.transferFrom(accounts[0], accounts[1], dUSDTAmount.divn(2), {from: accounts[1]});
         // check balanceOf accounts[1]
         dEtherAmount = await dEther.balanceOf(accounts[1]);
         dWBTCAmount = await dWBTC.balanceOf(accounts[1]);
@@ -375,8 +393,8 @@ contract('Interface test', async (accounts) => {
         // make price change effect
         await comptroller.refreshMarketDeposit();
         let sysLiquidity = await comptroller.getSystemLiquidity();
-        assert.equal(sysLiquidity[1], 0);
-        assert.ok(sysLiquidity[2] > 0);
+        assert.equal(sysLiquidity[1].toString(), "0");
+        assert.ok(sysLiquidity[2].cmpn(0) > 0);
         let accountLiquidity = await comptroller.getAccountLiquidity(accounts[0]);
         totalBorrows = await borrowPool.totalBorrows();
         accountBorrows = await borrowPool.getBorrows(accounts[0]);

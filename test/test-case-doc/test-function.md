@@ -222,6 +222,10 @@ Expected Results:
     - totalBorrows >= before - repayAmount;
     - getBorrows(user) >= before - repayAmount;
 
+
+>note: if repay amount > 0, it must be more than accrued interest.
+> the case that repay amount less than accrued interest should be tested at exact quantitative test.
+
 ### SimpleRepayBorrowBehalf
 
 Description:

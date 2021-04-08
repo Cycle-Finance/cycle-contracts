@@ -8,6 +8,7 @@ async function simpleRepayBorrow(ctx, market, borrower, usedSCContract, amount) 
     let scBalanceBefore = await usedSCContract.balanceOf(borrower);
     await ctx.borrowPool.repayBorrow(usedSCContract.address, amount, {from: borrower});
     await ctx.comptroller.refreshMarketDeposit();
+    console.log('repay borrow');
     let comptrollerStateAfter = await context.comptrollerState(ctx, market, borrower);
     let borrowPoolStateAfter = await context.borrowPoolState(ctx, borrower);
     let userBalanceStateAfter = await context.userBalanceState(ctx, market, borrower);
@@ -31,13 +32,22 @@ async function simpleRepayBorrow(ctx, market, borrower, usedSCContract, amount) 
     let systemLiquidityAfter = comptrollerStateAfter.systemLiquidity;
     let userLiquidityBefore = comptrollerStateBefore.userLiquidity;
     let userLiquidityAfter = comptrollerStateAfter.userLiquidity;
-    assert.ok(systemLiquidityAfter[1].cmp(systemLiquidityBefore[1]) <= 0
-        && systemLiquidityAfter[2].cmp(systemLiquidityBefore[2]) >= 0);
-    assert.ok(userLiquidityAfter[1].cmp(userLiquidityBefore[1]) <= 0
-        && userLiquidityAfter[2].cmp(userLiquidityBefore[2]) >= 0);
+    if (amount.toString() === "0") {
+        assert.ok(systemLiquidityAfter[1].cmp(systemLiquidityBefore[1]) <= 0);
+        assert.ok(userLiquidityAfter[1].cmp(userLiquidityBefore[1]) <= 0);
+        assert.ok(systemLiquidityAfter[2].cmp(systemLiquidityBefore[2]) >= 0);
+        assert.ok(userLiquidityAfter[2].cmp(userLiquidityBefore[2]) >= 0);
+    } else {
+        assert.ok(systemLiquidityAfter[1].cmp(systemLiquidityBefore[1]) >= 0);
+        assert.ok(userLiquidityAfter[1].cmp(userLiquidityBefore[1]) >= 0);
+        assert.ok(systemLiquidityAfter[2].cmp(systemLiquidityBefore[2]) <= 0);
+        assert.ok(userLiquidityAfter[2].cmp(userLiquidityBefore[2]) <= 0);
+    }
     // check asset & borrow state change
-    assert.equal(userBalanceStateAfter.underlyingBalance.toString(),
-        userBalanceStateBefore.underlyingBalance.toString());
+    if (market.address.toString() !== ctx.dEther.address.toString()) {
+        assert.equal(userBalanceStateAfter.underlyingBalance.toString(),
+            userBalanceStateBefore.underlyingBalance.toString());
+    }
     assert.equal(userBalanceStateAfter.dTokenBalance.toString(),
         userBalanceStateBefore.dTokenBalance.toString());
     assert.ok(userBalanceStateAfter.cfgtBalance.cmp(userBalanceStateBefore.cfgtBalance) >= 0);
@@ -47,19 +57,19 @@ async function simpleRepayBorrow(ctx, market, borrower, usedSCContract, amount) 
     let bnAmount = web3.utils.toBN(amount);
     if (bnAmount.toString() === maxUint256.toString()) {
         if (usedSCContract.address === ctx.CFSC.address) {
-            assert.ok(userBalanceStateAfter.cfscBalance.cmp(userBalanceStateBefore.cfscBalance) >= 0);
+            assert.ok(userBalanceStateAfter.cfscBalance.cmp(userBalanceStateBefore.cfscBalance.sub(bnAmount)) >= 0);
         } else {
             assert.ok(scBalanceBefore.cmp(scBalanceAfter) >= 0);
             assert.ok(userBalanceStateAfter.cfscBalance.cmp(userBalanceStateBefore.cfscBalance) >= 0);
         }
-        assert.ok(borrowPoolStateAfter.totalBorrows.cmp(borrowPoolStateBefore.totalBorrows) >= 0);
-        assert.ok(borrowPoolStateAfter.userBorrows.cmp(borrowPoolStateBefore.userBorrows) >= 0);
+        assert.ok(borrowPoolStateAfter.totalBorrows.cmp(borrowPoolStateBefore.totalBorrows) <= 0);
+        assert.ok(borrowPoolStateAfter.userBorrows.cmp(borrowPoolStateBefore.userBorrows) <= 0);
     } else {
         if (usedSCContract.address === ctx.CFSC.address) {
             assert.ok(userBalanceStateAfter.cfscBalance.cmp(userBalanceStateBefore.cfscBalance.sub(bnAmount)) >= 0);
         } else {
-            assert.ok(scBalanceBefore.cmp(scBalanceAfter.add(bn)) >= 0);
-            assert.ok(userBalanceStateAfter.cfscBalance.cmp(userBalanceStateBefore.cfscBalance.sub(bnAmount)) >= 0);
+            assert.ok(scBalanceBefore.cmp(scBalanceAfter) >= 0);
+            assert.ok(userBalanceStateAfter.cfscBalance.cmp(userBalanceStateBefore.cfscBalance) >= 0);
         }
         assert.ok(borrowPoolStateAfter.totalBorrows.cmp(borrowPoolStateBefore.totalBorrows.sub(bnAmount)) >= 0);
         assert.ok(borrowPoolStateAfter.userBorrows.cmp(borrowPoolStateBefore.userBorrows.sub(bnAmount)) >= 0);
@@ -74,6 +84,7 @@ async function simpleRepayBorrowBehalf(ctx, market, payer, borrower, usedSCContr
     let scBalanceBefore = await usedSCContract.balanceOf(payer);
     await ctx.borrowPool.repayBorrowBehalf(usedSCContract.address, borrower, amount, {from: payer});
     await ctx.comptroller.refreshMarketDeposit();
+    console.log('repay borrow behalf');
     let comptrollerStateAfter = await context.comptrollerState(ctx, market, borrower);
     let borrowPoolStateAfter = await context.borrowPoolState(ctx, borrower);
     let borrowerBalanceStateAfter = await context.userBalanceState(ctx, market, borrower);
@@ -98,10 +109,17 @@ async function simpleRepayBorrowBehalf(ctx, market, payer, borrower, usedSCContr
     let systemLiquidityAfter = comptrollerStateAfter.systemLiquidity;
     let userLiquidityBefore = comptrollerStateBefore.userLiquidity;
     let userLiquidityAfter = comptrollerStateAfter.userLiquidity;
-    assert.ok(systemLiquidityAfter[1].cmp(systemLiquidityBefore[1]) <= 0
-        && systemLiquidityAfter[2].cmp(systemLiquidityBefore[2]) >= 0);
-    assert.ok(userLiquidityAfter[1].cmp(userLiquidityBefore[1]) <= 0
-        && userLiquidityAfter[2].cmp(userLiquidityBefore[2]) >= 0);
+    if (amount.toString() === "0") {
+        assert.ok(systemLiquidityAfter[1].cmp(systemLiquidityBefore[1]) <= 0);
+        assert.ok(userLiquidityAfter[1].cmp(userLiquidityBefore[1]) <= 0);
+        assert.ok(systemLiquidityAfter[2].cmp(systemLiquidityBefore[2]) >= 0);
+        assert.ok(userLiquidityAfter[2].cmp(userLiquidityBefore[2]) >= 0);
+    } else {
+        assert.ok(systemLiquidityAfter[1].cmp(systemLiquidityBefore[1]) >= 0);
+        assert.ok(userLiquidityAfter[1].cmp(userLiquidityBefore[1]) >= 0);
+        assert.ok(systemLiquidityAfter[2].cmp(systemLiquidityBefore[2]) <= 0);
+        assert.ok(userLiquidityAfter[2].cmp(userLiquidityBefore[2]) <= 0);
+    }
     // check asset & borrow state change
     if (market.address.toString() !== ctx.dEther.address.toString()) {
         assert.equal(borrowerBalanceStateAfter.underlyingBalance.toString(),
@@ -122,8 +140,8 @@ async function simpleRepayBorrowBehalf(ctx, market, payer, borrower, usedSCContr
     assert.ok(borrowPoolStateAfter.accrualBlock.cmp(borrowPoolStateBefore.accrualBlock) > 0);
     let bnAmount = web3.utils.toBN(amount);
     if (bnAmount.toString() === maxUint256.toString()) {
-        assert.ok(borrowPoolStateAfter.totalBorrows.cmp(borrowPoolStateBefore.totalBorrows) >= 0);
-        assert.ok(borrowPoolStateAfter.userBorrows.cmp(borrowPoolStateBefore.userBorrows) >= 0);
+        assert.ok(borrowPoolStateAfter.totalBorrows.cmp(borrowPoolStateBefore.totalBorrows) <= 0);
+        assert.ok(borrowPoolStateAfter.userBorrows.cmp(borrowPoolStateBefore.userBorrows) <= 0);
     } else {
         assert.ok(borrowPoolStateAfter.totalBorrows.cmp(borrowPoolStateBefore.totalBorrows.sub(bnAmount)) >= 0);
         assert.ok(borrowPoolStateAfter.userBorrows.cmp(borrowPoolStateBefore.userBorrows.sub(bnAmount)) >= 0);
@@ -144,7 +162,7 @@ async function revertRepayBorrowBehalf(ctx, payer, borrower, usedSCContract, amo
     try {
         await ctx.borrowPool.repayBorrowBehalf(usedSCContract.address, borrower, amount, {from: payer});
     } catch (e) {
-        console.log('revertRepayBorrowBehalf should be reverted by reason %s', e);
+        console.log('revertRepayBorrowBehalf should be reverted by reason %s', e.toString());
         return;
     }
     throw new Error('should be error');

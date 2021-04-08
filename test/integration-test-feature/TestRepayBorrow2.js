@@ -79,9 +79,11 @@ contract('repayBorrow-2: the debt of borrower is more than 0', async (accounts) 
         await usdc.approve(borrowPool.address, maxUint256, {from: accounts[1]});
         await usdt.approve(borrowPool.address, maxUint256, {from: accounts[1]});
         await CFSC.approve(borrowPool.address, maxUint256, {from: accounts[1]});
+        await usdc.approve(exchangePool.address, maxUint256, {from: accounts[1]});
+        await usdt.approve(exchangePool.address, maxUint256, {from: accounts[1]});
 
         // get some CFSC from exchange pool
-        await exchangePool.mintByCFSCAmount(usdt.address, web3.utils.toWei('10000'));
+        await exchangePool.mintByCFSCAmount(usdt.address, web3.utils.toWei('100000'), {from: accounts[1]});
         // deposit 10ETH
         await deposit.simpleDeposit(ctx, dEther, accounts[0], web3.utils.toWei('10'));
         // borrow 10000 CFSC
@@ -91,41 +93,35 @@ contract('repayBorrow-2: the debt of borrower is more than 0', async (accounts) 
         await repayBorrow.simpleRepayBorrow(ctx, ctx.dEther, accounts[0], ctx.USDC, 0);
         await repayBorrow.simpleRepayBorrow(ctx, ctx.dEther, accounts[0], ctx.USDT, 0);
         await repayBorrow.simpleRepayBorrow(ctx, ctx.dEther, accounts[0], ctx.CFSC, 0);
-        await repayBorrow.simpleRepayBorrowBehalf(ctx, ctx.dEther, accounts[1], accounts[0], ctx.dUSDC, 0);
-        await repayBorrow.simpleRepayBorrowBehalf(ctx, ctx.dEther, accounts[1], accounts[0], ctx.dUSDT, 0);
+        await repayBorrow.simpleRepayBorrowBehalf(ctx, ctx.dEther, accounts[1], accounts[0], ctx.USDC, 0);
+        await repayBorrow.simpleRepayBorrowBehalf(ctx, ctx.dEther, accounts[1], accounts[0], ctx.USDT, 0);
         await repayBorrow.simpleRepayBorrowBehalf(ctx, ctx.dEther, accounts[1], accounts[0], ctx.CFSC, 0);
-
-        await repayBorrow.simpleRepayBorrow(ctx, ctx.dEther, accounts[0], ctx.USDC, maxUint256);
-        await repayBorrow.simpleRepayBorrow(ctx, ctx.dEther, accounts[0], ctx.USDT, maxUint256);
-        await repayBorrow.simpleRepayBorrow(ctx, ctx.dEther, accounts[0], ctx.CFSC, maxUint256);
-        await repayBorrow.simpleRepayBorrowBehalf(ctx, ctx.dEther, accounts[1], accounts[0], ctx.dUSDC, maxUint256);
-        await repayBorrow.simpleRepayBorrowBehalf(ctx, ctx.dEther, accounts[1], accounts[0], ctx.dUSDT, maxUint256);
-        await repayBorrow.simpleRepayBorrowBehalf(ctx, ctx.dEther, accounts[1], accounts[0], ctx.CFSC, maxUint256);
     });
     it('repayBorrow-2-2: repay the part of value', async () => {
-        await repayBorrow.revertRepayBorrow(ctx, accounts[0], ctx.USDC, 100);
-        await repayBorrow.revertRepayBorrow(ctx, accounts[0], ctx.USDT, 100);
-        await repayBorrow.revertRepayBorrow(ctx, accounts[0], ctx.CFSC, 100);
-        await repayBorrow.revertRepayBorrowBehalf(ctx, accounts[1], accounts[0], ctx.USDC, 100);
-        await repayBorrow.revertRepayBorrowBehalf(ctx, accounts[1], accounts[0], ctx.USDT, 100);
-        await repayBorrow.revertRepayBorrowBehalf(ctx, accounts[1], accounts[0], ctx.CFSC, 100);
+        let repayAmount = web3.utils.toWei('100');
+        await repayBorrow.simpleRepayBorrow(ctx, ctx.dEther, accounts[0], ctx.USDC, repayAmount);
+        await repayBorrow.simpleRepayBorrow(ctx, ctx.dEther, accounts[0], ctx.USDT, repayAmount);
+        await repayBorrow.simpleRepayBorrow(ctx, ctx.dEther, accounts[0], ctx.CFSC, repayAmount);
+        await repayBorrow.simpleRepayBorrowBehalf(ctx, ctx.dEther, accounts[1], accounts[0], ctx.USDC, repayAmount);
+        await repayBorrow.simpleRepayBorrowBehalf(ctx, ctx.dEther, accounts[1], accounts[0], ctx.USDT, repayAmount);
+        await repayBorrow.simpleRepayBorrowBehalf(ctx, ctx.dEther, accounts[1], accounts[0], ctx.CFSC, repayAmount);
     });
     let borrowAmount = web3.utils.toWei('10000');
     it('repayBorrow-2-3: repay the whole of borrows', async () => {
         await repayBorrow.simpleRepayBorrow(ctx, ctx.dEther, accounts[0], ctx.USDC, maxUint256);
-        await borrow.simpleBorrow(ctx, dEther, accounts[0], borrowAmount);
+        await borrow.simpleBorrow(ctx, ctx.dEther, accounts[0], borrowAmount);
         await repayBorrow.simpleRepayBorrow(ctx, ctx.dEther, accounts[0], ctx.USDT, maxUint256);
-        await borrow.simpleBorrow(ctx, dEther, accounts[0], borrowAmount);
+        await borrow.simpleBorrow(ctx, ctx.dEther, accounts[0], borrowAmount);
         await repayBorrow.simpleRepayBorrow(ctx, ctx.dEther, accounts[0], ctx.CFSC, maxUint256);
-        await borrow.simpleBorrow(ctx, dEther, accounts[0], borrowAmount);
-        await repayBorrow.simpleRepayBorrowBehalf(ctx, ctx.dEther, accounts[1], accounts[0], ctx.dUSDC, maxUint256);
-        await borrow.simpleBorrow(ctx, dEther, accounts[0], borrowAmount);
-        await repayBorrow.simpleRepayBorrowBehalf(ctx, ctx.dEther, accounts[1], accounts[0], ctx.dUSDT, maxUint256);
-        await borrow.simpleBorrow(ctx, dEther, accounts[0], borrowAmount);
+        await borrow.simpleBorrow(ctx, ctx.dEther, accounts[0], borrowAmount);
+        await repayBorrow.simpleRepayBorrowBehalf(ctx, ctx.dEther, accounts[1], accounts[0], ctx.USDC, maxUint256);
+        await borrow.simpleBorrow(ctx, ctx.dEther, accounts[0], borrowAmount);
+        await repayBorrow.simpleRepayBorrowBehalf(ctx, ctx.dEther, accounts[1], accounts[0], ctx.USDT, maxUint256);
+        await borrow.simpleBorrow(ctx, ctx.dEther, accounts[0], borrowAmount);
         await repayBorrow.simpleRepayBorrowBehalf(ctx, ctx.dEther, accounts[1], accounts[0], ctx.CFSC, maxUint256);
     });
     it('repayBorrow-2-4: repay more than debts', async () => {
-        await borrow.simpleBorrow(ctx, dEther, accounts[0], borrowAmount);
+        await borrow.simpleBorrow(ctx, ctx.dEther, accounts[0], borrowAmount);
         let repayAmount = web3.utils.toWei('10001');
         await repayBorrow.revertRepayBorrow(ctx, accounts[0], ctx.USDC, repayAmount);
         await repayBorrow.revertRepayBorrow(ctx, accounts[0], ctx.USDT, repayAmount);
@@ -133,6 +129,5 @@ contract('repayBorrow-2: the debt of borrower is more than 0', async (accounts) 
         await repayBorrow.revertRepayBorrowBehalf(ctx, accounts[1], accounts[0], ctx.USDC, repayAmount);
         await repayBorrow.revertRepayBorrowBehalf(ctx, accounts[1], accounts[0], ctx.USDT, repayAmount);
         await repayBorrow.revertRepayBorrowBehalf(ctx, accounts[1], accounts[0], ctx.CFSC, repayAmount);
-
     });
 });

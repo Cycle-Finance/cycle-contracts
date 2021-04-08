@@ -6,6 +6,7 @@ const DERC20 = artifacts.require("DERC20");
 const DEther = artifacts.require("DEther");
 const ComptrollerProxy = artifacts.require("ComptrollerProxy");
 const BorrowsProxy = artifacts.require("BorrowsProxy");
+const DTokenProxy = artifacts.require("DTokenProxy");
 
 const ExchangePool = artifacts.require("ExchangePool");
 const CycleStableCoin = artifacts.require("CycleStableCoin");
@@ -449,5 +450,43 @@ contract('Interface test', async (accounts) => {
         await comptroller.claimInterest(markets, users);
         await comptroller.claimSupplierCFGT(markets, users);
         await comptroller.claimBorrowerCFGT(users);
+    });
+    it('upgrade to a new implementation', async () => {
+        // get proxy contract instance
+        let comptrollerProxy = await ComptrollerProxy.deployed();
+        let dEtherAddr = await comptrollerProxy.markets(0);
+        let dUSDCAddr = await comptrollerProxy.markets(2);
+        let dEtherProxy = await DTokenProxy.at(dEtherAddr);
+        let dUSDCProxy = await DTokenProxy.at(dUSDCAddr);
+        let borrowProxy = await BorrowsProxy.deployed();
+        // record implementation
+        let comptrollerImpl = await comptrollerProxy.implementation();
+        let etherImpl = await dEtherProxy.implementation();
+        let usdcImpl = await dUSDCProxy.implementation();
+        let borrowImpl = await borrowProxy.implementation();
+        // deploy some new implementation contracts
+        let newComptroller = await Comptroller.new();
+        let newBorrowPool = await Borrows.new();
+        let newDEth = await DEther.new();
+        let newDErc20 = await DERC20.new("Cycle Finance ERC20 Deposit Token", "DERC20", zeroAddress);
+        // upgrade
+        await comptrollerProxy.upgradeTo(newComptroller.address, emptyData);
+        await dEtherProxy.upgradeTo(newDEth.address, emptyData);
+        await dUSDCProxy.upgradeTo(newDErc20.address, emptyData);
+        await borrowProxy.upgradeTo(newBorrowPool.address, emptyData);
+        // fetch some value after upgrade
+        let comptrollerImplNew = await comptrollerProxy.implementation();
+        let etherImplNew = await dEtherProxy.implementation();
+        let usdcImplNew = await dUSDCProxy.implementation();
+        let borrowImplNew = await borrowProxy.implementation();
+        // check upgrade result
+        assert.ok(comptrollerImpl.toString() !== comptrollerImplNew.toString());
+        assert.ok(etherImpl.toString() !== etherImplNew.toString());
+        assert.ok(usdcImpl.toString() !== usdcImplNew.toString());
+        assert.ok(borrowImpl.toString() !== borrowImplNew.toString());
+        assert.ok(comptrollerImplNew.toString() === newComptroller.address.toString());
+        assert.ok(etherImplNew.toString() === newDEth.address.toString());
+        assert.ok(usdcImplNew.toString() === newDErc20.address.toString());
+        assert.ok(borrowImplNew.toString() === newBorrowPool.address.toString());
     });
 });

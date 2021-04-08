@@ -222,8 +222,7 @@ Expected Results:
     - totalBorrows >= before - repayAmount;
     - getBorrows(user) >= before - repayAmount;
 
-
->note: if repay amount > 0, it must be more than accrued interest.
+> note: if repay amount > 0, it must be more than accrued interest.
 > the case that repay amount less than accrued interest should be tested at exact quantitative test.
 
 ### SimpleRepayBorrowBehalf
@@ -355,14 +354,14 @@ Expected Results:
     - userAccrued[borrower] == 0 or >= before;
     - userAccrued[liquidator] == 0 or >= before;
     - getSystemLiquidity()[1] >= before && getSystemLiquidity()[2] <= before;
-    - getAccountLiquidity(borrower)[1] <= before && getAccountLiquidity(borrower)[2] >= before;
+    - getAccountLiquidity(borrower)[1] >= before && getAccountLiquidity(borrower)[2] <= before;
     - getAccountLiquidity(liquidator)[1] >= before && getAccountLiquidity(liquidator)[2] <= before;
     - borrowDistributedBlock >= before;
     - borrowIndex >= before;
     - borrowerIndex >= before
 - User asset state change:
     - market.underlying.balanceOf(borrower) == before;
-    - market.underlying.balanceOf(liquidator) == before;
+    - market.underlying.balanceOf(liquidator) <= before;
     - market.balanceOf(borrower) <= before;
     - market.balanceOf(liquidator) >= before;
     - CFGT.balanceOf(borrower)>= before;

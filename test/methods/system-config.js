@@ -52,13 +52,13 @@ async function SetLiquidationIncentive(ctx, incentive) {
     assert.equal(contractState, incentive);
 }
 
-async function SetPrice(ctx, asset, price) {
-    await ctx.oracle.setPrice(asset.address, price);
-    let contractState = await ctx.oracle.getPrice(asset.address);
-    let expScale = web3.utils.toWei('1');
-    let decimals = await asset.decimals();
-    let decimalsScale = web3.utils.toBN(10).pow(decimals);
-    let correctPrice = price.mul(expScale).div(decimalsScale);
+async function SetPrice(ctx, asset, decimals, price) {
+    let bnPrice = web3.utils.toBN(price);
+    await ctx.oracle.setPrice(asset, bnPrice);
+    let contractState = await ctx.oracle.getPrice(asset);
+    let expScale = web3.utils.toBN(web3.utils.toWei('1'));
+    let decimalsScale = web3.utils.toBN(10).pow(web3.utils.toBN(decimals));
+    let correctPrice = bnPrice.mul(expScale).div(decimalsScale);
     assert.equal(contractState.toString(), correctPrice.toString());
 }
 

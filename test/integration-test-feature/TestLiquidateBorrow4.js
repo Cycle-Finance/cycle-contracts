@@ -66,9 +66,9 @@ contract('liquidate-4: liquidator is same as borrower', async (accounts) => {
 
         await deposit.simpleDeposit(ctx, dEther, accounts[0], web3.utils.toWei('10'));
         await borrow.simpleBorrow(ctx, dEther, accounts[0], web3.utils.toWei('14000'));
-        await sysConfig.SetPrice(ctx, '0x0000000000000000000000000000000000000000', web3.utils.toWei('1500'));
+        await sysConfig.SetPrice(ctx, '0x0000000000000000000000000000000000000000', 18, web3.utils.toWei('1500'));
     });
-    it('liquidate-4-1: liquidate 0', async () => {
+    it('liquidate-4-1: liquidate 10000', async () => {
         let repayAmount = web3.utils.toWei('10000');
         let reason = "liquidator is same as borrower";
         await liquidateBorrow.failLiquidateBorrow(ctx, ctx.dEther, accounts[0], accounts[0], ctx.USDC, repayAmount, reason);

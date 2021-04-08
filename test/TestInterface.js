@@ -259,6 +259,7 @@ contract('Interface test', async (accounts) => {
         await dWBTC.transfer(accounts[1], wbtcAmount);
         await dUSDC.transfer(accounts[1], usdcAmount);
         await dUSDT.transfer(accounts[1], usdtAmount);
+        // TODO: approve and transfer from
         // check balanceOf accounts[1]
         dEtherAmount = await dEther.balanceOf(accounts[1]);
         dWBTCAmount = await dWBTC.balanceOf(accounts[1]);

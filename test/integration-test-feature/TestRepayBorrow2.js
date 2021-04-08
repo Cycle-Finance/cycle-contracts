@@ -61,17 +61,8 @@ contract('repayBorrow-2: the debt of borrower is more than 0', async (accounts) 
         let wbtcAmount = 1000 * (10 ** 8);
         let usdAmount = 1000000 * (10 ** 6);
         await wbtc.transfer(accounts[1], wbtcAmount);
-        await wbtc.transfer(accounts[2], wbtcAmount);
-        await wbtc.transfer(accounts[3], wbtcAmount);
-        await wbtc.transfer(accounts[4], wbtcAmount);
         await usdc.transfer(accounts[1], usdAmount);
-        await usdc.transfer(accounts[2], usdAmount);
-        await usdc.transfer(accounts[3], usdAmount);
-        await usdc.transfer(accounts[4], usdAmount);
         await usdt.transfer(accounts[1], usdAmount);
-        await usdt.transfer(accounts[2], usdAmount);
-        await usdt.transfer(accounts[3], usdAmount);
-        await usdt.transfer(accounts[4], usdAmount);
 
         await usdc.approve(borrowPool.address, maxUint256, {from: accounts[0]});
         await usdt.approve(borrowPool.address, maxUint256, {from: accounts[0]});

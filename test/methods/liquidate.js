@@ -7,7 +7,7 @@ async function simpleLiquidateBorrow(ctx, market, liquidator, borrower, usedSCCo
     let borrowerBalanceStateBefore = await context.userBalanceState(ctx, market, borrower);
     let liquidatorBalanceStateBefore = await context.userBalanceState(ctx, market, liquidator);
     let balanceBefore = await usedSCContract.balanceOf(liquidator);
-    await ctx.borrowPool.liquidateBorrow(usedSCContract, market.address, borrower, repayAmount, {from: liquidator});
+    await ctx.borrowPool.liquidateBorrow(usedSCContract.address, market.address, borrower, repayAmount, {from: liquidator});
     await ctx.comptroller.refreshMarketDeposit();
     let borrowerCompStateAfter = await context.comptrollerState(ctx, market, borrower);
     let liquidatorCompStateAfter = await context.comptrollerState(ctx, market, liquidator);
@@ -40,19 +40,20 @@ async function simpleLiquidateBorrow(ctx, market, liquidator, borrower, usedSCCo
     let borrowerLiquidityAfter = borrowerCompStateAfter.userLiquidity;
     let liquidatorLiquidity = liquidatorCompStateBefore.userLiquidity;
     let liquidatorLiquidityAfter = liquidatorCompStateAfter.userLiquidity;
-    assert.ok(systemLiquidityAfter[1].cmp(systemLiquidityBefore[1]) <= 0
-        && systemLiquidityAfter[2].cmp(systemLiquidityBefore[2]) >= 0);
-    assert.ok(borrowerLiquidityAfter[1].cmp(borrowerLiquidity[1]) <= 0
-        && borrowerLiquidityAfter[2].cmp(borrowerLiquidity[2]) >= 0);
+    assert.ok(systemLiquidityAfter[1].cmp(systemLiquidityBefore[1]) >= 0
+        && systemLiquidityAfter[2].cmp(systemLiquidityBefore[2]) <= 0);
+    assert.ok(borrowerLiquidityAfter[1].cmp(borrowerLiquidity[1]) >= 0
+        && borrowerLiquidityAfter[2].cmp(borrowerLiquidity[2]) <= 0);
     assert.ok(liquidatorLiquidityAfter[1].cmp(liquidatorLiquidity[1]) >= 0
         && liquidatorLiquidityAfter[2].cmp(liquidatorLiquidity[2]) <= 0);
     // check asset state change
     if (market.address.toString() !== ctx.dEther.address.toString()) {
         assert.equal(borrowerBalanceStateAfter.underlyingBalance.toString(),
             borrowerBalanceStateBefore.underlyingBalance.toString());
-        assert.equal(liquidatorBalanceStateAfter.underlyingBalance.toString(),
-            liquidatorBalanceStateBefore.underlyingBalance.toString());
     }
+    // liquidator repay some underlying asset
+    assert.ok(liquidatorBalanceStateAfter.underlyingBalance.cmp(liquidatorBalanceStateBefore.underlyingBalance) <= 0);
+
     assert.ok(borrowerBalanceStateAfter.dTokenBalance.cmp(borrowerBalanceStateBefore.dTokenBalance) <= 0);
     assert.ok(liquidatorBalanceStateAfter.dTokenBalance.cmp(liquidatorBalanceStateBefore.dTokenBalance) >= 0);
     assert.ok(borrowerBalanceStateAfter.cfgtBalance.cmp(borrowerBalanceStateBefore.cfgtBalance) >= 0);
@@ -62,7 +63,7 @@ async function simpleLiquidateBorrow(ctx, market, liquidator, borrower, usedSCCo
     if (usedSCContract.address === ctx.CFSC.address) {
         assert.ok(liquidatorBalanceStateAfter.cfscBalance.cmp(liquidatorBalanceStateBefore.cfscBalance.sub(bnAmount)) >= 0);
     } else {
-        assert.ok(balanceAfter.cmp(balanceBefore) >= 0);
+        assert.ok(balanceAfter.cmp(balanceBefore.sub(bnAmount)) >= 0);
         assert.ok(liquidatorBalanceStateAfter.cfscBalance.cmp(liquidatorBalanceStateBefore.cfscBalance) >= 0);
     }
     // check borrow state change
@@ -75,7 +76,7 @@ async function simpleLiquidateBorrow(ctx, market, liquidator, borrower, usedSCCo
 
 async function revertLiquidateBorrow(ctx, market, liquidator, borrower, usedSCContract, repayAmount) {
     try {
-        await ctx.borrowPool.liquidateBorrow(usedSCContract, market.address, borrower, repayAmount, {from: liquidator});
+        await ctx.borrowPool.liquidateBorrow(usedSCContract.address, market.address, borrower, repayAmount, {from: liquidator});
     } catch (e) {
         console.log('liquidate borrow should be reverted by reason %s', e.toString());
         return;
@@ -85,7 +86,7 @@ async function revertLiquidateBorrow(ctx, market, liquidator, borrower, usedSCCo
 
 async function failLiquidateBorrow(ctx, market, liquidator, borrower, usedSCContract, repayAmount, reason) {
     let reasonMatched = false;
-    let tx = await ctx.borrowPool.liquidateBorrow(usedSCContract, market.address, borrower, repayAmount, {from: liquidator});
+    let tx = await ctx.borrowPool.liquidateBorrow(usedSCContract.address, market.address, borrower, repayAmount, {from: liquidator});
     for (let i = 0; i < tx.logs.length; i++) {
         let log = tx.logs[i];
         if (log.event === "Fail") {

@@ -66,10 +66,10 @@ contract('liquidate-5: illegal liquidation amount', async (accounts) => {
 
         await deposit.simpleDeposit(ctx, dEther, accounts[0], web3.utils.toWei('10'));
         await borrow.simpleBorrow(ctx, dEther, accounts[0], web3.utils.toWei('14000'));
-        await sysConfig.SetPrice(ctx, '0x0000000000000000000000000000000000000000', web3.utils.toWei('1500'));
+        await sysConfig.SetPrice(ctx, '0x0000000000000000000000000000000000000000', 18, web3.utils.toWei('1500'));
     });
     it('liquidate-5-1: liquidate 0', async () => {
-        let repayAmount = web3.utils.toWei('10000');
+        let repayAmount = 0;
         let reason = "illegal liquidation amount";
         await liquidateBorrow.failLiquidateBorrow(ctx, ctx.dEther, accounts[1], accounts[0], ctx.USDC, repayAmount, reason);
         await liquidateBorrow.failLiquidateBorrow(ctx, ctx.dEther, accounts[1], accounts[0], ctx.USDT, repayAmount, reason);

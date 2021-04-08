@@ -8,7 +8,6 @@ async function simpleRepayBorrow(ctx, market, borrower, usedSCContract, amount) 
     let scBalanceBefore = await usedSCContract.balanceOf(borrower);
     await ctx.borrowPool.repayBorrow(usedSCContract.address, amount, {from: borrower});
     await ctx.comptroller.refreshMarketDeposit();
-    console.log('repay borrow');
     let comptrollerStateAfter = await context.comptrollerState(ctx, market, borrower);
     let borrowPoolStateAfter = await context.borrowPoolState(ctx, borrower);
     let userBalanceStateAfter = await context.userBalanceState(ctx, market, borrower);
@@ -84,7 +83,6 @@ async function simpleRepayBorrowBehalf(ctx, market, payer, borrower, usedSCContr
     let scBalanceBefore = await usedSCContract.balanceOf(payer);
     await ctx.borrowPool.repayBorrowBehalf(usedSCContract.address, borrower, amount, {from: payer});
     await ctx.comptroller.refreshMarketDeposit();
-    console.log('repay borrow behalf');
     let comptrollerStateAfter = await context.comptrollerState(ctx, market, borrower);
     let borrowPoolStateAfter = await context.borrowPoolState(ctx, borrower);
     let borrowerBalanceStateAfter = await context.userBalanceState(ctx, market, borrower);

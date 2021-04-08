@@ -69,12 +69,19 @@ contract('liquidate-6: normal liquidate', async (accounts) => {
         await usdt.approve(borrowPool.address, maxUint256, {from: accounts[1]});
         await CFSC.approve(borrowPool.address, maxUint256, {from: accounts[1]});
 
+        await usdc.approve(exchangePool.address, maxUint256, {from: accounts[1]});
+        await usdt.approve(exchangePool.address, maxUint256, {from: accounts[1]});
+        // get some CFSC from exchange pool
+        await exchangePool.mintByCFSCAmount(usdt.address, web3.utils.toWei('100000'), {from: accounts[1]});
+
         await deposit.simpleDeposit(ctx, dEther, accounts[0], web3.utils.toWei('10'));
         await deposit.simpleDeposit(ctx, dWBTC, accounts[0], wbtcAmount / 1000);
         await deposit.simpleDeposit(ctx, dUSDC, accounts[0], usdAmount / 100);
         await deposit.simpleDeposit(ctx, dUSDT, accounts[0], usdAmount / 100);
         await borrow.simpleBorrow(ctx, dEther, accounts[0], web3.utils.toWei('67780'));
-        await sysConfig.SetPrice(ctx, '0x0000000000000000000000000000000000000000', web3.utils.toWei('1500'));
+        await sysConfig.SetPrice(ctx, '0x0000000000000000000000000000000000000000', 18, web3.utils.toWei('1500'));
+        // refresh market deposit
+        await comptroller.refreshMarketDeposit();
     });
     it('liquidate-6-1: liquidate seize too much, tx should be reverted', async () => {
         let repayAmount = web3.utils.toWei('54000');
@@ -83,7 +90,7 @@ contract('liquidate-6: normal liquidate', async (accounts) => {
         await liquidateBorrow.revertLiquidateBorrow(ctx, ctx.dEther, accounts[1], accounts[0], ctx.CFSC, repayAmount);
     });
     it('liquidate-6-2: liquidate some value at each market', async () => {
-        let repayAmount = web3.utils.toWei('1000');
+        let repayAmount = web3.utils.toWei('10');
         await liquidateBorrow.simpleLiquidateBorrow(ctx, ctx.dEther, accounts[1], accounts[0], ctx.USDC, repayAmount);
         await liquidateBorrow.simpleLiquidateBorrow(ctx, ctx.dWBTC, accounts[1], accounts[0], ctx.USDC, repayAmount);
         await liquidateBorrow.simpleLiquidateBorrow(ctx, ctx.dUSDC, accounts[1], accounts[0], ctx.USDC, repayAmount);

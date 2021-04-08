@@ -24,6 +24,7 @@ const borrow = require('../methods/borrow');
 const sysConfig = require('../methods/system-config');
 const liquidateBorrow = require('../methods/liquidate');
 
+const maxUint256 = web3.utils.toBN(2).pow(web3.utils.toBN(256)).sub(web3.utils.toBN(1));
 contract('liquidate-3: liquidate too much', async (accounts) => {
     let ctx;
     before(async () => {
@@ -66,7 +67,7 @@ contract('liquidate-3: liquidate too much', async (accounts) => {
 
         await deposit.simpleDeposit(ctx, dEther, accounts[0], web3.utils.toWei('10'));
         await borrow.simpleBorrow(ctx, dEther, accounts[0], web3.utils.toWei('14000'));
-        await sysConfig.SetPrice(ctx, '0x0000000000000000000000000000000000000000', web3.utils.toWei('1500'));
+        await sysConfig.SetPrice(ctx, '0x0000000000000000000000000000000000000000', 18, web3.utils.toWei('1500'));
     });
     it('liquidate-3-1: liquidate 0', async () => {
         let reason = "illegal liquidation amount";
@@ -76,9 +77,9 @@ contract('liquidate-3: liquidate too much', async (accounts) => {
     });
     it('liquidate-3-2: liquidate -1', async () => {
         let reason = "liquidate too much";
-        await liquidateBorrow.failLiquidateBorrow(ctx, ctx.dEther, accounts[1], accounts[0], ctx.USDC, 800, reason);
-        await liquidateBorrow.failLiquidateBorrow(ctx, ctx.dEther, accounts[1], accounts[0], ctx.USDT, 800, reason);
-        await liquidateBorrow.failLiquidateBorrow(ctx, ctx.dEther, accounts[1], accounts[0], ctx.CFSC, 800, reason);
+        await liquidateBorrow.failLiquidateBorrow(ctx, ctx.dEther, accounts[1], accounts[0], ctx.USDC, maxUint256, reason);
+        await liquidateBorrow.failLiquidateBorrow(ctx, ctx.dEther, accounts[1], accounts[0], ctx.USDT, maxUint256, reason);
+        await liquidateBorrow.failLiquidateBorrow(ctx, ctx.dEther, accounts[1], accounts[0], ctx.CFSC, maxUint256, reason);
     });
     it('liquidate-3-3: liquidate exceed max close value', async () => {
         let reason = "liquidate too much";

@@ -139,9 +139,9 @@ abstract contract DToken is DTokenStorage, Exponential {
 
     function tokenValue(uint amount) public view returns (uint){
         Exp memory price = Exp(oracle.getPrice(underlyingAsset));
-        (MathError err, Exp memory value) = mulScalar(price, amount);
+        (MathError err, uint value) = mulScalarTruncate(price, amount);
         require(err == MathError.NO_ERROR, "calculate value failed");
-        return value.mantissa;
+        return value;
     }
 
     function tokenAmount(uint value) public view returns (uint){

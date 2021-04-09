@@ -9,6 +9,10 @@ function div_(a, b) {
     return a.mul(expScale).div(b);
 }
 
+function divAndTruncate(a, b) {
+    return div_(a, b).div(expScale);
+}
+
 function expToDecimals(a) {
     return a / expScale;
 }
@@ -17,4 +21,4 @@ function doubleToDecimals(a) {
     return a / expScale;
 }
 
-module.exports = {expScale, doubleScale, mul_, div_, expToDecimals, doubleToDecimals};
+module.exports = {expScale, doubleScale, mul_, div_, divAndTruncate, expToDecimals, doubleToDecimals};

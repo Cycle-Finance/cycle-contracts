@@ -86,3 +86,5 @@ The change of basic variable will cause the change of dependent variable.
 
 All state of contracts both are dependent variable, we should check the contract state change with exact amount after
 user operation. That is **Exact Quantitative Test**.
+
+The detail about how dose dependent variable dependent on basic variable is [here](./exact-test.md).

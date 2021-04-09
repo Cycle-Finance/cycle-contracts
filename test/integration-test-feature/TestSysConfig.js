@@ -19,7 +19,7 @@ const WBTC = artifacts.require("TestWBTC");
 
 const IERC20 = artifacts.require("IERC20");
 
-const sysConfig = require('../methods/system-config');
+const sysConfig = require('./methods/system-config');
 
 /// @notice: these case only test system config function. The affection of system config has been tested at other case.
 

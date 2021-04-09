@@ -19,9 +19,9 @@ const WBTC = artifacts.require("TestWBTC");
 
 const IERC20 = artifacts.require("IERC20");
 
-const deposit = require('../methods/deposit');
-const context = require('../methods/context');
-const borrow = require('../methods/borrow');
+const deposit = require('./methods/deposit');
+const context = require('./methods/context');
+const borrow = require('./methods/borrow');
 
 contract('borrow test case 2&3', async (accounts) => {
     let ctx;

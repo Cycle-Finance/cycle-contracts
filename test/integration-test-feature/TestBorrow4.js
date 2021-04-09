@@ -19,9 +19,9 @@ const WBTC = artifacts.require("TestWBTC");
 
 const IERC20 = artifacts.require("IERC20");
 
-const deposit = require('../methods/deposit');
-const borrow = require('../methods/borrow');
-const systemCfg = require('../methods/system-config');
+const deposit = require('./methods/deposit');
+const borrow = require('./methods/borrow');
+const systemCfg = require('./methods/system-config');
 
 const maxUint256 = web3.utils.toBN(2).pow(web3.utils.toBN(256)).sub(web3.utils.toBN(1));
 

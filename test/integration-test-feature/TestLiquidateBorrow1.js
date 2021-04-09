@@ -19,10 +19,10 @@ const WBTC = artifacts.require("TestWBTC");
 
 const IERC20 = artifacts.require("IERC20");
 
-const deposit = require('../methods/deposit');
-const borrow = require('../methods/borrow');
-const sysConfig = require('../methods/system-config');
-const liquidateBorrow = require('../methods/liquidate');
+const deposit = require('./methods/deposit');
+const borrow = require('./methods/borrow');
+const sysConfig = require('./methods/system-config');
+const liquidateBorrow = require('./methods/liquidate');
 
 const maxUint256 = web3.utils.toBN(2).pow(web3.utils.toBN(256)).sub(web3.utils.toBN(1));
 contract('liquidate-1: disable liquidate public borrower', async (accounts) => {

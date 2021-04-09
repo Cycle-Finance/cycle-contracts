@@ -19,10 +19,10 @@ const WBTC = artifacts.require("TestWBTC");
 
 const IERC20 = artifacts.require("IERC20");
 
-const deposit = require('../methods/deposit');
-const borrow = require('../methods/borrow');
-const transfer = require('../methods/transfer');
-const sysConfig = require('../methods/system-config');
+const deposit = require('./methods/deposit');
+const borrow = require('./methods/borrow');
+const transfer = require('./methods/transfer');
+const sysConfig = require('./methods/system-config');
 
 contract('transfer test case', async (accounts) => {
     let ctx;

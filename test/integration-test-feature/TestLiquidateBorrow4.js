@@ -19,10 +19,10 @@ const WBTC = artifacts.require("TestWBTC");
 
 const IERC20 = artifacts.require("IERC20");
 
-const deposit = require('../methods/deposit');
-const borrow = require('../methods/borrow');
-const sysConfig = require('../methods/system-config');
-const liquidateBorrow = require('../methods/liquidate');
+const deposit = require('./methods/deposit');
+const borrow = require('./methods/borrow');
+const sysConfig = require('./methods/system-config');
+const liquidateBorrow = require('./methods/liquidate');
 
 contract('liquidate-4: liquidator is same as borrower', async (accounts) => {
     let ctx;

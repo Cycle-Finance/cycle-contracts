@@ -19,7 +19,7 @@ const WBTC = artifacts.require("TestWBTC");
 
 const IERC20 = artifacts.require("IERC20");
 
-const repayBorrow = require('../methods/repay-borrow');
+const repayBorrow = require('./methods/repay-borrow');
 
 const maxUint256 = web3.utils.toBN(2).pow(web3.utils.toBN(256)).sub(web3.utils.toBN(1));
 contract('repayBorrow-1: the debt of borrower is 0', async (accounts) => {

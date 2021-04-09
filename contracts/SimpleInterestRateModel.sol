@@ -13,7 +13,8 @@ contract SimpleInterestRateModel is InterestRateModel, ExponentialNoError, Ownab
     /**
      * @notice The approximate number of blocks per year that is assumed by the interest rate model
      */
-    uint constant public  blocksPerYear = 2102400;
+    uint constant public  blocksPerYear = 2102400; // ETH
+    // uint constant public  blocksPerYear = 10512000; // BSC
 
     /**
      * @notice The multiplier of utilization rate that gives the slope of the interest rate
@@ -54,7 +55,7 @@ contract SimpleInterestRateModel is InterestRateModel, ExponentialNoError, Ownab
         }
         Exp memory deposit = Exp(depositValueMantissa);
         Exp memory borrows = Exp(borrowsValueMantissa);
-        return div_(deposit, borrows).mantissa;
+        return div_(borrows, deposit).mantissa;
     }
 
     /**

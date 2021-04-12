@@ -10,6 +10,12 @@ We check interest rate model with some initialized param.
 
 [implementation](../integration-test-quantify/method/interest-rate-model.js)
 
+## Exchange Pool
+
+User could exchange CFSC and other stable coin at exchange pool.
+
+[implementation]()
+
 ## DToken
 
 The exchange rate of underlying asset and dToken is constant, the value is 1. And there are only some state variable in
@@ -18,3 +24,6 @@ dToken. However, there are some interface that used oracle, so we test dToken wi
 We check dToken state change after user operate through dToken interface.
 
 [implementation](../integration-test-quantify/method/dToken.js)
+
+## Borrow Pool
+

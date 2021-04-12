@@ -61,13 +61,14 @@ contract ExchangePool is Ownable, Exponential {
     function mintByCFSCAmount(address asset, uint cfscAmount) public assetSupported(asset) returns (uint){
         Exp memory assetPrice = Exp(oracle.getPrice(asset));
         Exp memory cfscPrice = Exp(CFSC_PRICE);
-        // tokenAmount = cfscAmount * cfscPrice / assetPrice = cfscAmount * (cfscPrice / assetPrice)
-        (MathError err, Exp memory ratio) = divExp(cfscPrice, assetPrice);
-        require(err == MathError.NO_ERROR, "calculate err");
-        uint tokenAmount = mul_ScalarTruncate(ratio, cfscAmount);
-        require(asset.safeTransferFrom(msg.sender, address(this), tokenAmount), "transfer failed");
+        (MathError err1, Exp memory cfscValue) = mulScalar(cfscPrice, cfscAmount);
+        require(err1 == MathError.NO_ERROR, "calculate cfscValue err");
+        (MathError err2, Exp memory tokenAmount) = divExp(cfscValue, assetPrice);
+        require(err2 == MathError.NO_ERROR, "calculate tokenAmount err");
+        uint result = truncate(tokenAmount);
+        require(asset.safeTransferFrom(msg.sender, address(this), result), "transfer failed");
         CFSC.mint(msg.sender, cfscAmount);
-        return tokenAmount;
+        return result;
     }
 
     // return burned CFSC amount
@@ -88,11 +89,12 @@ contract ExchangePool is Ownable, Exponential {
         CFSC.burn(cfscAmount);
         Exp memory assetPrice = Exp(oracle.getPrice(asset));
         Exp memory cfscPrice = Exp(CFSC_PRICE);
-        // tokenAmount = cfscAmount * cfscPrice / assetPrice = cfscAmount * (cfscPrice / assetPrice)
-        (MathError err, Exp memory ratio) = divExp(cfscPrice, assetPrice);
-        require(err == MathError.NO_ERROR, "calculate err");
-        uint tokenAmount = mul_ScalarTruncate(ratio, cfscAmount);
-        require(asset.safeTransfer(msg.sender, tokenAmount), "transfer asset faield");
-        return tokenAmount;
+        (MathError err1, Exp memory cfscValue) = mulScalar(cfscPrice, cfscAmount);
+        require(err1 == MathError.NO_ERROR, "calculate cfscValue err");
+        (MathError err2, Exp memory tokenAmount) = divExp(cfscValue, assetPrice);
+        require(err2 == MathError.NO_ERROR, "calculate tokenAmount err");
+        uint result = truncate(tokenAmount);
+        require(asset.safeTransfer(msg.sender, result), "transfer asset faield");
+        return result;
     }
 }

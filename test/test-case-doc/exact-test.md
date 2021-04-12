@@ -14,7 +14,7 @@ We check interest rate model with some initialized param.
 
 User could exchange CFSC and other stable coin at exchange pool.
 
-[implementation]()
+[implementation](../integration-test-quantify/method/exchange-pool.js)
 
 ## DToken
 
@@ -27,3 +27,6 @@ We check dToken state change after user operate through dToken interface.
 
 ## Borrow Pool
 
+Borrow pool calculate concrete interest and own reserves.
+
+[implementation](../integration-test-quantify/method/borrow-pool.js)

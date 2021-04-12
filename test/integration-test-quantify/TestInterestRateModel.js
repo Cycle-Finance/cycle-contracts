@@ -12,8 +12,8 @@ contract('test simple interest rate model', async (accounts) => {
         let contractBaseRate = await contract.baseRatePerBlock();
         assert.ok(contractMultiplier.cmp(interestRateModel.multiplierPerBlock(multiplierPerYear)) === 0);
         assert.ok(contractBaseRate.cmp(interestRateModel.baseRatePerBlock(baseRatePerYear)) === 0);
-        let depositValue = web3.utils.toBN('165431321546543213134541').mul(math.expScale);
-        let borrowValue = web3.utils.toBN('101431321546543213134541').mul(math.expScale);
+        let depositValue = web3.utils.toBN('165431321546543213134541');
+        let borrowValue = web3.utils.toBN('101431321546543213134541');
         let contractUR = await contract.utilizationRate(depositValue, borrowValue);
         assert.ok(contractUR.cmp(math.expScale) <= 0);
         assert.ok(contractUR.cmp(interestRateModel.utilizationRate(depositValue, borrowValue)) === 0);

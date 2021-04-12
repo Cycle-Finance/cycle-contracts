@@ -152,8 +152,9 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
                 return "insufficient liquidity";
             }
         } else {
-            Exp memory totalBorrows = Exp(borrowPool._totalBorrows() * expScale);
-            (MathError err, Exp memory utilizationRate) = divExp(totalBorrows, Exp(totalDeposit));
+            // totalBorrowsValue = _totalBorrows * cfscPrice / expScale
+            Exp memory totalBorrowsValue = Exp(borrowPool._totalBorrows());
+            (MathError err, Exp memory utilizationRate) = divExp(totalBorrowsValue, Exp(totalDeposit));
             if (err != MathError.NO_ERROR) {
                 return "public borrow failed: UR";
             }
@@ -265,7 +266,8 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
 
     function liquidateCalculateSeizeTokens(address dToken, uint repayAmount)
     public override view returns (string memory, uint){
-        Exp memory repayValue = Exp(repayAmount * expScale);
+        // repayValue = repayAmount * cfscPrice / expScale
+        Exp memory repayValue = Exp(repayAmount);
         (MathError err, Exp memory incentiveRepayValue) = mulExp(Exp(liquidationIncentive), repayValue);
         if (err != MathError.NO_ERROR) {
             return ("calculate incentive value failed", 0);
@@ -293,7 +295,8 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
         Exp memory systemFactor = Exp(maxSystemUtilizationRate);
         Exp memory deposit = Exp(totalDeposit);
         uint totalBorrows = borrowPool._totalBorrows();
-        Exp memory hypotheticalBorrows = Exp((totalBorrows + borrowAmount) * expScale);
+        // borrows value = borrowBalance * CFSC price / expScale
+        Exp memory hypotheticalBorrows = Exp(add_(totalBorrows, borrowAmount) * 1);
         Exp memory hypotheticalRedeemValue = Exp(dToken == address(0) ?
             0 : DTokenInterface(dToken).tokenValue(redeemTokens));
         (MathError err, Exp memory remainLiquidity) = subExp(deposit, hypotheticalRedeemValue);
@@ -340,10 +343,8 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
             borrowLimit = add_(borrowLimit, assetBorrowLimit);
         }
         uint totalBorrows = borrowPool.getBorrows(account) + borrowAmount;
-        (MathError err2, Exp memory hypotheticalBorrows) = getExp(totalBorrows, 1);
-        if (err2 != MathError.NO_ERROR) {
-            return (err2, 0, 0);
-        }
+        // hypotheticalBorrows = totalBorrows * CFSCPrice / expScale
+        Exp memory hypotheticalBorrows = Exp(totalBorrows);
         if (lessThanExp(hypotheticalBorrows, borrowLimit)) {
             return (MathError.NO_ERROR, borrowLimit.mantissa - hypotheticalBorrows.mantissa, 0);
         } else {

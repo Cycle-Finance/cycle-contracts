@@ -19,6 +19,9 @@ interface BorrowsInterface {
     // return total borrows, is scalar
     function _totalBorrows() external view returns (uint);
 
+    // return account borrows snapshot
+    function accountBorrowsSnapshot(address user) external view returns (uint);
+
     // return user latest borrows(after multiply latest borrowIndex), is scalar
     function getBorrows(address user) external view returns (uint);
 }

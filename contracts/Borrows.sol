@@ -37,8 +37,10 @@ contract Borrows is BorrowsStorage, BorrowsInterface, Exponential, ErrorReporter
         uint reservesCurrent;
         uint borrowIndexNew;
 
-        uint totalDeposit = comptroller._totalDeposit();
-        Exp memory borrowRate = Exp(interestRateModel.borrowRatePerBlock(totalDeposit, totalBorrows * expScale));
+        uint totalDepositMantissa = comptroller._totalDeposit();
+        // totalBorrowsMantissa = mulScalarTruncate(cfscPrice, totalBorrows) = totalBorrows
+        uint totalBorrowsMantissa = totalBorrows;
+        Exp memory borrowRate = Exp(interestRateModel.borrowRatePerBlock(totalDepositMantissa, totalBorrowsMantissa));
         (mathErr, simpleInterestFactor) = mulScalar(borrowRate, blockDelta);
         if (mathErr != MathError.NO_ERROR) {
             return ("calculate interest factor failed", 0);
@@ -78,7 +80,7 @@ contract Borrows is BorrowsStorage, BorrowsInterface, Exponential, ErrorReporter
         totalBorrows = totalBorrowsNew;
 
         /* We emit an AccrueInterest event */
-        emit AccrueInterest(totalDeposit, supplyInterest, reservesCurrent, borrowIndexNew, totalBorrowsNew);
+        emit AccrueInterest(totalDepositMantissa, supplyInterest, reservesCurrent, borrowIndexNew, totalBorrowsNew);
 
         return ("", supplyInterest);
     }
@@ -189,16 +191,12 @@ contract Borrows is BorrowsStorage, BorrowsInterface, Exponential, ErrorReporter
     }
 
     function getBorrows(address user) public override view returns (uint){
-        Exp memory globalIndex = Exp(borrowIndex);
         AccountBorrowSnapshot memory snapshot = accountBorrows[user];
         if (snapshot.index == 0) {
             return 0;
         }
-        Exp memory userIndex = Exp(snapshot.index);
-        Exp memory deltaIndex = div_(globalIndex, userIndex);
-        (MathError err, uint borrows) = mulScalarTruncate(deltaIndex, snapshot.borrows);
-        require(err == MathError.NO_ERROR, "calculate user borrows failed");
-        return borrows;
+        uint tempBorrows = mul_(borrowIndex, snapshot.borrows);
+        return div_(tempBorrows, snapshot.index);
     }
 
     function isBorrowPool() public override pure returns (bool){
@@ -210,8 +208,12 @@ contract Borrows is BorrowsStorage, BorrowsInterface, Exponential, ErrorReporter
     }
 
     // return total borrows, is scalar
-    function _totalBorrows() external override view returns (uint){
+    function _totalBorrows() public override view returns (uint){
         return totalBorrows;
+    }
+
+    function accountBorrowsSnapshot(address user) public override view returns (uint){
+        return accountBorrows[user].borrows;
     }
 
     function reduceReserves(address recipient) public onlyComptroller override returns (uint){

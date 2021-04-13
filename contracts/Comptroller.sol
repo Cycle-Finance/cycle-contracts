@@ -75,7 +75,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
                 /* update supply index */
                 if (supplyCFGTAccrued > 0) {
                     (MathError err2, uint marketSupplyCFGT) = mulScalarTruncate(marketWeight, supplyCFGTAccrued);
-                    require(err2 == MathError.NO_ERROR, "cal market interest failed");
+                    require(err2 == MathError.NO_ERROR, "cal market CFGT failed");
                     Double memory supplyRatio = fraction(marketSupplyCFGT, dTokenTotalSupply);
                     supplyIndex[market] = add_(supplyIndex[market], supplyRatio.mantissa);
                 }
@@ -87,6 +87,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
         }
         // record refreshed block
         refreshedBlock = block.number;
+        require(borrowPool._accrualBlockNumber() == block.number, "stale accrual interest block");
         // update total deposit
         totalDeposit = tempTotalDeposit;
     }
@@ -399,7 +400,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
         uint userBalance = IERC20(market).balanceOf(user);
         uint userDelta = mul_(userBalance, deltaIndex);
         userAccrued[user] = add_(userAccrued[user], userDelta);
-        if (IERC20(CFGT).transferFrom(CFGT, user, userAccrued[user])) {
+        if (transferCFGT(user, userAccrued[user])) {
             userAccrued[user] = 0;
         }
         emit DistributeSupplierCFGT(market, user, userDelta, marketState.mantissa);
@@ -417,10 +418,18 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
         uint userBorrows = div_(borrowPool.getBorrows(user), borrowPoolIndex);
         uint userDelta = mul_(userBorrows, deltaIndex);
         userAccrued[user] = add_(userAccrued[user], userDelta);
-        if (IERC20(CFGT).transferFrom(CFGT, user, userAccrued[user])) {
+        if (transferCFGT(user, userAccrued[user])) {
             userAccrued[user] = 0;
         }
         emit DistributeBorrowerCFGT(user, userDelta, globalState.mantissa);
+    }
+
+    function transferCFGT(address to, uint amount) internal returns (bool){
+        IERC20 erc20 = IERC20(CFGT);
+        if (erc20.balanceOf(CFGT) < amount) {
+            return false;
+        }
+        return erc20.transferFrom(CFGT, to, amount);
     }
 
     function claimAllProfit(address[] memory accounts) public {

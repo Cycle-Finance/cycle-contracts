@@ -13,7 +13,7 @@ function tokenValue(amount, price) {
 }
 
 function tokenAmount(value, price) {
-    return math.divAndTruncate(value, price);
+    return math.div_(value, price);
 }
 
 module.exports = {depositValue, userDepositValue, tokenValue, tokenAmount};

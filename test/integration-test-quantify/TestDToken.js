@@ -38,18 +38,20 @@ contract('test dToken', async (accounts) => {
         let oracle = await TestOracle.deployed();
         let wbtc = await WBTC.deployed();
         let price = await oracle.getPrice(wbtc.address);
-        console.log('price:', price.toString());
         // accounts[0] deposit
         let comptroller = await Comptroller.at(ComptrollerProxy.address);
         let dWBTC = await DERC20.at(await comptroller.markets(1));
+        let wbtcBalanceBefore = await wbtc.balanceOf(accounts[0]);
         let amount = web3.utils.toBN(10 * (10 ** 8));
         dWBTC.mint(amount);
+        let wbtcBalanceAfter = await wbtc.balanceOf(accounts[0]);
+        assert.equal(wbtcBalanceBefore.sub(wbtcBalanceAfter).toString(), amount.toString());
         let contractTotalSupply = await dWBTC.totalSupply();
         let contractBalanceOf0 = await dWBTC.balanceOf(accounts[0]);
         assert.equal(contractTotalSupply.toString(), contractBalanceOf0.toString());
         assert.equal(contractTotalSupply.toString(), amount.toString());
         let contractDepositValue = await dWBTC.depositValue();
-        let localDepositValue = await dToken.depositValue(amount, price);
+        let localDepositValue = dToken.depositValue(amount, price);
         assert.equal(contractDepositValue.toString(), localDepositValue.toString());
         // accounts[1] deposit
         await dWBTC.mint(amount, {from: accounts[1]});
@@ -58,7 +60,7 @@ contract('test dToken', async (accounts) => {
         assert.equal(contractBalanceOf1.toString(), amount.toString());
         assert.equal(contractTotalSupply.toString(), (amount.muln(2)).toString());
         contractDepositValue = await dWBTC.depositValue();
-        localDepositValue = await dToken.depositValue(amount.muln(2), price);
+        localDepositValue = dToken.depositValue(amount.muln(2), price);
         assert.equal(contractDepositValue.toString(), localDepositValue.toString());
         // check user deposit value
         let contractUserValue0 = await dWBTC.userDepositValue(accounts[0]);
@@ -78,6 +80,7 @@ contract('test dToken', async (accounts) => {
         contractDepositValue = await dWBTC.depositValue();
         let contractTokenAmount = await dWBTC.tokenAmount(contractDepositValue);
         let localTokenAmount = dToken.tokenAmount(contractDepositValue, price);
+        console.log(contractTokenAmount.toString(), localTokenAmount.toString());
         assert.equal(contractTokenAmount.toString(), localTokenAmount.toString());
         // accounts[0] redeem
         await dWBTC.redeem(amount);

@@ -9,7 +9,7 @@ This required
 - the call of each interface has not reverted;
 - 100% code coverage.
 
-The code about interface test at [here](../TestInterface.js).
+The code about interface test at [here](TestInterface.js).
 
 ## integration Test
 
@@ -39,15 +39,15 @@ All Case listed below:
 
 | Type | Case |
 | --- | --- |
-| deposit | [deposit test case](./deposit.md) |
-| withdraw | [withdraw test case](./withdraw.md) |
-| borrow | [borrow test case](./borrow.md) |
-| repayBorrow | [repayBorrow test case](./repay-borrow.md) |
-| liquidateBorrow | [liquidateBorrow test case](./liquidate.md) |
-| transfer | [transfer test case](./transfer.md) |
-| modifySystemConfig | [modifySystemConfig test case](./system-config.md) |
+| deposit | [deposit test case](test-case-doc/deposit.md) |
+| withdraw | [withdraw test case](test-case-doc/withdraw.md) |
+| borrow | [borrow test case](test-case-doc/borrow.md) |
+| repayBorrow | [repayBorrow test case](test-case-doc/repay-borrow.md) |
+| liquidateBorrow | [liquidateBorrow test case](test-case-doc/liquidate.md) |
+| transfer | [transfer test case](test-case-doc/transfer.md) |
+| modifySystemConfig | [modifySystemConfig test case](test-case-doc/system-config.md) |
 
-Case implementation locate here: [Integration Test Feature](../integration-test-feature).
+Case implementation locate here: [Integration Test Feature](integration-test-feature).
 
 ### Exact Quantitative Case
 
@@ -87,4 +87,4 @@ The change of basic variable will cause the change of dependent variable.
 All state of contracts both are dependent variable, we should check the contract state change with exact amount after
 user operation. That is **Exact Quantitative Test**.
 
-The detail about how dose dependent variable dependent on basic variable is [here](./exact-test.md).
+The detail about how dose dependent variable dependent on basic variable is [here](test-case-doc/exact-test.md).

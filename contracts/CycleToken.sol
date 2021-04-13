@@ -11,8 +11,6 @@ contract CycleToken is ERC20, Ownable {
     uint constant public PRESERVED_TOKEN = 50000 * factor;
     uint constant public MAX_TOTAL_SUPPLY = 2100000 * factor;
 
-    uint public approvedToken;
-
     // live the most of tokens inside the contract
     constructor()ERC20("Cycle Finance Governance Token", "CFGT"){
         // mint 50,000 to dev team

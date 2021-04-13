@@ -212,6 +212,10 @@ contract Borrows is BorrowsStorage, BorrowsInterface, Exponential, ErrorReporter
         return totalBorrows;
     }
 
+    function _accrualBlockNumber() public override view returns (uint){
+        return accrualBlock;
+    }
+
     function accountBorrowsSnapshot(address user) public override view returns (uint){
         return accountBorrows[user].borrows;
     }

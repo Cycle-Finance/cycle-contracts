@@ -1,5 +1,5 @@
 const expScale = web3.utils.toBN(web3.utils.toWei('1'));
-const doubleScale = expScale * expScale;
+const doubleScale = expScale.mul(expScale);
 
 function mul_(a, b) {
     return a.mul(b).div(expScale);
@@ -17,6 +17,10 @@ function divAndTruncate(a, b) {
     return div_(a, b).div(expScale);
 }
 
+function fraction(a, b) {
+    return a.mul(doubleScale).div(b);
+}
+
 function expToDecimals(a) {
     return a / expScale;
 }
@@ -32,6 +36,7 @@ module.exports = {
     div_,
     mulScalarAndTruncate,
     divAndTruncate,
+    fraction,
     expToDecimals,
     doubleToDecimals
 };

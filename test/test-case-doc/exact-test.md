@@ -2,7 +2,7 @@
 
 The value we calculate locally has some precision errors, but most of the values in the contract are integers with 18/36
 decimals. Therefore, when we check, we can't ask them to be completely equal. We just require that the margin is less
-than a certain range, such 0.01%. But we should be as precise as possible.
+than a certain range, such as 0.01%. But we should be as precise as possible.
 
 ## Interest Rate Model
 
@@ -30,3 +30,9 @@ We check dToken state change after user operate through dToken interface.
 Borrow pool calculate concrete interest and own reserves.
 
 [implementation](../integration-test-quantify/method/borrow-pool.js)
+
+## Comptroller
+
+Comptroller is responsible for CFGT disctribution, interest CFSC distribution, borrow/liquidation audit.
+
+[implementation](../integration-test-quantify/method/comptroller.js)

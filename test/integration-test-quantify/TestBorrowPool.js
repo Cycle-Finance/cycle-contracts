@@ -32,6 +32,7 @@ contract('test borrow pool', async (accounts) => {
         let dEther = await DEther.at(await comptroller.markets(0));
         let depositAmount = web3.utils.toWei('10');
         await dEther.mint(depositAmount, {value: depositAmount});
+        await dEther.mint(depositAmount, {value: depositAmount, from: accounts[1]});
         // insure deposit successful
         let dEtherAmount = await dEther.balanceOf(accounts[0]);
         assert.equal(dEtherAmount.toString(), depositAmount.toString());
@@ -41,7 +42,9 @@ contract('test borrow pool', async (accounts) => {
         await usdt.transfer(accounts[1], usdtAmount);
         let exchangePool = await ExchangePool.deployed();
         await usdt.approve(exchangePool.address, usdtAmount, {from: accounts[1]});
-        await exchangePool.mint(usdt.address, usdtAmount, {from: accounts[1]});
+        await usdt.approve(exchangePool.address, usdtAmount);
+        await exchangePool.mintByCFSCAmount(usdt.address, web3.utils.toBN(web3.utils.toWei('1000')), {from: accounts[1]});
+        await exchangePool.mintByCFSCAmount(usdt.address, web3.utils.toBN(web3.utils.toWei('1000')));
         ctx.comptroller = comptroller;
         ctx.borrowPool = await Borrows.at(BorrowsProxy.address);
         let interestRateModelAddr = await ctx.borrowPool.interestRateModel();
@@ -63,7 +66,7 @@ contract('test borrow pool', async (accounts) => {
         await assertBorrowPoolStateChange(ctx.interestRateModel, stateBefore, stateAfter,
             web3.utils.toBN(0), web3.utils.toBN(0));
     });
-    it('borrow 1000 CFSC', async () => {
+    it('accounts[0] borrow 1000 CFSC', async () => {
         let stateBefore = await getState(ctx, accounts[0]);
         let borrowAmount = web3.utils.toBN(web3.utils.toWei('1000'));
         await ctx.borrowPool.borrow(borrowAmount);
@@ -71,7 +74,17 @@ contract('test borrow pool', async (accounts) => {
         await assertBorrowPoolStateChange(ctx.interestRateModel, stateBefore, stateAfter,
             borrowAmount, web3.utils.toBN(0));
         let cfscBalance = await ctx.cfsc.balanceOf(accounts[0]);
-        assert.equal(cfscBalance.toString(), borrowAmount.toString());
+        assert.equal(cfscBalance.toString(), borrowAmount.muln(2).toString());
+    });
+    it('accounts[1] borrow 1000 CFSC', async () => {
+        let stateBefore = await getState(ctx, accounts[1]);
+        let borrowAmount = web3.utils.toBN(web3.utils.toWei('1000'));
+        await ctx.borrowPool.borrow(borrowAmount, {from: accounts[1]});
+        let stateAfter = await getState(ctx, accounts[1]);
+        await assertBorrowPoolStateChange(ctx.interestRateModel, stateBefore, stateAfter,
+            borrowAmount, web3.utils.toBN(1));
+        let cfscBalance = await ctx.cfsc.balanceOf(accounts[1]);
+        assert.equal(cfscBalance.toString(), borrowAmount.muln(2).toString());
     });
     it('forward some blocks', async () => {
         let stateBefore = await getState(ctx, accounts[0]);
@@ -80,7 +93,7 @@ contract('test borrow pool', async (accounts) => {
         await assertBorrowPoolStateChange(ctx.interestRateModel, stateBefore, stateAfter,
             web3.utils.toBN(0), web3.utils.toBN(0));
     });
-    it('borrow 10000 CFSC', async () => {
+    it('accounts[0] borrow 10000 CFSC', async () => {
         let stateBefore = await getState(ctx, accounts[0]);
         let borrowAmount = web3.utils.toBN(web3.utils.toWei('10000'));
         await ctx.borrowPool.borrow(borrowAmount);
@@ -88,7 +101,17 @@ contract('test borrow pool', async (accounts) => {
         await assertBorrowPoolStateChange(ctx.interestRateModel, stateBefore, stateAfter,
             borrowAmount, web3.utils.toBN(0));
         let cfscBalance = await ctx.cfsc.balanceOf(accounts[0]);
-        assert.equal(cfscBalance.toString(), web3.utils.toWei('11000').toString());
+        assert.equal(cfscBalance.toString(), web3.utils.toWei('12000').toString());
+    });
+    it('accounts[1] borrow 10000 CFSC', async () => {
+        let stateBefore = await getState(ctx, accounts[1]);
+        let borrowAmount = web3.utils.toBN(web3.utils.toWei('10000'));
+        await ctx.borrowPool.borrow(borrowAmount, {from: accounts[1]});
+        let stateAfter = await getState(ctx, accounts[1]);
+        await assertBorrowPoolStateChange(ctx.interestRateModel, stateBefore, stateAfter,
+            borrowAmount, web3.utils.toBN(1));
+        let cfscBalance = await ctx.cfsc.balanceOf(accounts[1]);
+        assert.equal(cfscBalance.toString(), web3.utils.toWei('12000').toString());
     });
     it('forward some blocks', async () => {
         let stateBefore = await getState(ctx, accounts[0]);
@@ -97,11 +120,19 @@ contract('test borrow pool', async (accounts) => {
         await assertBorrowPoolStateChange(ctx.interestRateModel, stateBefore, stateAfter,
             web3.utils.toBN(0), web3.utils.toBN(0));
     });
-    it('repay 1000 CFSC', async () => {
+    it('accounts[0] repay 1000 CFSC', async () => {
         let stateBefore = await getState(ctx, accounts[0]);
         let repayAmount = web3.utils.toBN(web3.utils.toWei('1000'));
         await ctx.borrowPool.repayBorrow(ctx.cfsc.address, repayAmount);
         let stateAfter = await getState(ctx, accounts[0]);
+        await assertBorrowPoolStateChange(ctx.interestRateModel, stateBefore, stateAfter,
+            web3.utils.toBN(0), repayAmount);
+    });
+    it('accounts[1] repay 1000 CFSC', async () => {
+        let stateBefore = await getState(ctx, accounts[1]);
+        let repayAmount = web3.utils.toBN(web3.utils.toWei('1000'));
+        await ctx.borrowPool.repayBorrow(ctx.cfsc.address, repayAmount, {from: accounts[1]});
+        let stateAfter = await getState(ctx, accounts[1]);
         await assertBorrowPoolStateChange(ctx.interestRateModel, stateBefore, stateAfter,
             web3.utils.toBN(0), repayAmount);
     });
@@ -112,11 +143,19 @@ contract('test borrow pool', async (accounts) => {
         await assertBorrowPoolStateChange(ctx.interestRateModel, stateBefore, stateAfter,
             web3.utils.toBN(0), web3.utils.toBN(0));
     });
-    it('repay 1000 CFSC behalf', async () => {
+    it('accounts[0] repay 1000 CFSC behalf', async () => {
         let stateBefore = await getState(ctx, accounts[0]);
         let repayAmount = web3.utils.toBN(web3.utils.toWei('1000'));
         await ctx.borrowPool.repayBorrowBehalf(ctx.cfsc.address, accounts[0], repayAmount, {from: accounts[1]});
         let stateAfter = await getState(ctx, accounts[0]);
+        await assertBorrowPoolStateChange(ctx.interestRateModel, stateBefore, stateAfter,
+            web3.utils.toBN(0), repayAmount);
+    });
+    it('accounts[1] repay 1000 CFSC behalf', async () => {
+        let stateBefore = await getState(ctx, accounts[1]);
+        let repayAmount = web3.utils.toBN(web3.utils.toWei('1000'));
+        await ctx.borrowPool.repayBorrowBehalf(ctx.cfsc.address, accounts[1], repayAmount);
+        let stateAfter = await getState(ctx, accounts[1]);
         await assertBorrowPoolStateChange(ctx.interestRateModel, stateBefore, stateAfter,
             web3.utils.toBN(0), repayAmount);
     });
@@ -127,7 +166,7 @@ contract('test borrow pool', async (accounts) => {
         await assertBorrowPoolStateChange(ctx.interestRateModel, stateBefore, stateAfter,
             web3.utils.toBN(0), web3.utils.toBN(0));
     });
-    it('change ETH price and liquidate borrower', async () => {
+    it('change ETH price and liquidate accounts[0]', async () => {
         liquidation = true;
         let stateBefore = await getState(ctx, accounts[0]);
         await ctx.oracle.setPrice('0x0000000000000000000000000000000000000000',
@@ -139,6 +178,18 @@ contract('test borrow pool', async (accounts) => {
             web3.utils.toBN(0), amount);
         liquidation = false;
     });
+    it('change ETH price and liquidate accounts[1]', async () => {
+        liquidation = true;
+        let stateBefore = await getState(ctx, accounts[1]);
+        await ctx.oracle.setPrice('0x0000000000000000000000000000000000000000',
+            web3.utils.toBN(web3.utils.toWei('1000')));
+        let amount = web3.utils.toBN(web3.utils.toWei('6666'));
+        await ctx.borrowPool.liquidateBorrow(ctx.cfsc.address, ctx.dEther.address, accounts[1], amount);
+        let stateAfter = await getState(ctx, accounts[1]);
+        await assertBorrowPoolStateChange(ctx.interestRateModel, stateBefore, stateAfter,
+            web3.utils.toBN(0), amount);
+        liquidation = false;
+    });
     it('forward some blocks', async () => {
         let stateBefore = await getState(ctx, accounts[0]);
         await context.makeBlock(13, accounts);
@@ -146,10 +197,17 @@ contract('test borrow pool', async (accounts) => {
         await assertBorrowPoolStateChange(ctx.interestRateModel, stateBefore, stateAfter,
             web3.utils.toBN(0), web3.utils.toBN(0));
     });
-    it('repay the remain borrows', async () => {
+    it('accounts[0] repay the remain borrows', async () => {
         let stateBefore = await getState(ctx, accounts[0]);
         await ctx.borrowPool.repayBorrow(ctx.cfsc.address, maxUint256);
         let stateAfter = await getState(ctx, accounts[0]);
+        await assertBorrowPoolStateChange(ctx.interestRateModel, stateBefore, stateAfter,
+            web3.utils.toBN(0), maxUint256);
+    });
+    it('accounts[1] repay the remain borrows', async () => {
+        let stateBefore = await getState(ctx, accounts[1]);
+        await ctx.borrowPool.repayBorrow(ctx.cfsc.address, maxUint256, {from: accounts[1]});
+        let stateAfter = await getState(ctx, accounts[1]);
         await assertBorrowPoolStateChange(ctx.interestRateModel, stateBefore, stateAfter,
             web3.utils.toBN(0), maxUint256);
     });
@@ -175,6 +233,8 @@ async function getState(ctx, user) {
     }
 }
 
+const mismatchThreshold = 100000; // 100000 / 1e18 = 1e13
+
 // if borrow, borrowAmountChange > 0; if repayBorrow/liquidateBorrow, borrowAmountChange < 0
 async function assertBorrowPoolStateChange(interestRateModel, stateBefore, stateAfter, borrowAmount, repayAmount) {
     let blockDelta = stateAfter.borrowPoolState.accrualBlock - stateBefore.borrowPoolState.accrualBlock;
@@ -183,8 +243,11 @@ async function assertBorrowPoolStateChange(interestRateModel, stateBefore, state
     let localState = borrow.accrueInterest(borrowRate, blockDelta, stateBefore.borrowPoolState.totalBorrows,
         stateBefore.borrowPoolState.reserveFactor, stateBefore.borrowPoolState.borrowIndex);
     if (repayAmount.toString() !== maxUint256.toString()) {
-        assert.equal(localState.totalBorrows.add(borrowAmount).sub(repayAmount).toString(),
-            stateAfter.borrowPoolState.totalBorrows.toString());
+        let localStateTotalBorrows = localState.totalBorrows.add(borrowAmount).sub(repayAmount);
+        let gap = localStateTotalBorrows.cmp(stateAfter.borrowPoolState.totalBorrows) > 0 ?
+            localStateTotalBorrows.sub(stateAfter.borrowPoolState.totalBorrows) :
+            stateAfter.borrowPoolState.totalBorrows.sub(localStateTotalBorrows);
+        assert.ok(gap.cmpn(mismatchThreshold) <= 0);
     }
     assert.equal(localState.borrowIndex.toString(), stateAfter.borrowPoolState.borrowIndex.toString());
     // if comptroller distribute interest to supplier, the assert will fail
@@ -199,7 +262,10 @@ async function assertBorrowPoolStateChange(interestRateModel, stateBefore, state
         let localAccountBorrows = borrow.getAccountBorrows(stateBefore.borrowPoolState.borrowIndex,
             stateAfter.borrowPoolState.borrowIndex, stateBefore.borrowPoolState.accountBorrows);
         localAccountBorrows = localAccountBorrows.add(borrowAmount).sub(repayAmount);
-        assert.ok(stateAfter.borrowPoolState.accountBorrows.cmp(localAccountBorrows) === 0);
+        let gap = localAccountBorrows.cmp(stateAfter.borrowPoolState.accountBorrows) > 0 ?
+            localAccountBorrows.sub(stateAfter.borrowPoolState.accountBorrows) :
+            stateAfter.borrowPoolState.accountBorrows.sub(localAccountBorrows);
+        assert.ok(gap.cmpn(mismatchThreshold) <= 0);
     } else {
         assert.equal(stateAfter.borrowPoolState.accountBorrows.toString(), '0');
     }

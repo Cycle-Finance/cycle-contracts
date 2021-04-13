@@ -21,7 +21,7 @@ const IERC20 = artifacts.require("IERC20");
 
 const context = require('./method/context');
 const borrow = require('./method/borrow-pool');
-const math = require('./method/math');
+const ep = require('./method/exchange-pool');
 
 let liquidation = false;
 const maxUint256 = web3.utils.toBN(2).pow(web3.utils.toBN(256)).sub(web3.utils.toBN(1));
@@ -45,8 +45,11 @@ contract('test borrow pool', async (accounts) => {
         await usdt.approve(exchangePool.address, usdtAmount);
         await exchangePool.mintByCFSCAmount(usdt.address, web3.utils.toBN(web3.utils.toWei('1000')), {from: accounts[1]});
         await exchangePool.mintByCFSCAmount(usdt.address, web3.utils.toBN(web3.utils.toWei('1000')));
+        ctx.exchangePool = exchangePool;
         ctx.comptroller = comptroller;
         ctx.borrowPool = await Borrows.at(BorrowsProxy.address);
+        await usdt.approve(ctx.borrowPool.address, usdtAmount, {from: accounts[1]});
+        await usdt.approve(ctx.borrowPool.address, usdtAmount);
         let interestRateModelAddr = await ctx.borrowPool.interestRateModel();
         ctx.interestRateModel = await SimpleInterestRateModel.at(interestRateModelAddr);
         ctx.cfsc = await CycleStableCoin.deployed();
@@ -54,6 +57,8 @@ contract('test borrow pool', async (accounts) => {
         await ctx.cfsc.approve(ctx.borrowPool.address, maxUint256, {from: accounts[1]});
         ctx.oracle = await TestOracle.deployed();
         ctx.dEther = dEther;
+        ctx.usdt = usdt;
+        ctx.usdtPrice = await ctx.oracle.getPrice(usdt.address);
     });
     it('empty borrows', async () => {
         let stateBefore = await getState(ctx, accounts[0]);
@@ -136,6 +141,40 @@ contract('test borrow pool', async (accounts) => {
         await assertBorrowPoolStateChange(ctx.interestRateModel, stateBefore, stateAfter,
             web3.utils.toBN(0), repayAmount);
     });
+    it('accounts[0] repay 1000 CFSC by USDT', async () => {
+        let stateBefore = await getState(ctx, accounts[0]);
+        let usdtBalanceBefore = await ctx.usdt.balanceOf(accounts[0]);
+        let epBalanceBefore = await ctx.usdt.balanceOf(ctx.exchangePool.address);
+        let repayAmount = web3.utils.toBN(web3.utils.toWei('1000'));
+        await ctx.borrowPool.repayBorrow(ctx.usdt.address, repayAmount);
+        let stateAfter = await getState(ctx, accounts[0]);
+        let usdtBalanceAfter = await ctx.usdt.balanceOf(accounts[0]);
+        let epBalanceAfter = await ctx.usdt.balanceOf(ctx.exchangePool.address);
+        await assertBorrowPoolStateChange(ctx.interestRateModel, stateBefore, stateAfter,
+            web3.utils.toBN(0), repayAmount);
+        let usdtBalanceGap = usdtBalanceBefore.sub(usdtBalanceAfter);
+        let epBalanceGap = epBalanceAfter.sub(epBalanceBefore);
+        let localGap = ep.burnByCFSCAmount(ctx.usdtPrice, repayAmount);
+        assert.equal(usdtBalanceGap.toString(), localGap.toString());
+        assert.equal(epBalanceGap.toString(), localGap.toString());
+    });
+    it('accounts[1] repay 1000 CFSC by USDT', async () => {
+        let stateBefore = await getState(ctx, accounts[1]);
+        let usdtBalanceBefore = await ctx.usdt.balanceOf(accounts[1]);
+        let epBalanceBefore = await ctx.usdt.balanceOf(ctx.exchangePool.address);
+        let repayAmount = web3.utils.toBN(web3.utils.toWei('1000'));
+        await ctx.borrowPool.repayBorrow(ctx.usdt.address, repayAmount, {from: accounts[1]});
+        let stateAfter = await getState(ctx, accounts[1]);
+        let usdtBalanceAfter = await ctx.usdt.balanceOf(accounts[1]);
+        let epBalanceAfter = await ctx.usdt.balanceOf(ctx.exchangePool.address);
+        await assertBorrowPoolStateChange(ctx.interestRateModel, stateBefore, stateAfter,
+            web3.utils.toBN(0), repayAmount);
+        let usdtBalanceGap = usdtBalanceBefore.sub(usdtBalanceAfter);
+        let epBalanceGap = epBalanceAfter.sub(epBalanceBefore);
+        let localGap = ep.burnByCFSCAmount(ctx.usdtPrice, repayAmount);
+        assert.equal(usdtBalanceGap.toString(), localGap.toString());
+        assert.equal(epBalanceGap.toString(), localGap.toString());
+    });
     it('forward some blocks', async () => {
         let stateBefore = await getState(ctx, accounts[0]);
         await context.makeBlock(12, accounts);
@@ -171,7 +210,7 @@ contract('test borrow pool', async (accounts) => {
         let stateBefore = await getState(ctx, accounts[0]);
         await ctx.oracle.setPrice('0x0000000000000000000000000000000000000000',
             web3.utils.toBN(web3.utils.toWei('1000')));
-        let amount = web3.utils.toBN(web3.utils.toWei('6666'));
+        let amount = web3.utils.toBN(web3.utils.toWei('3333'));
         await ctx.borrowPool.liquidateBorrow(ctx.cfsc.address, ctx.dEther.address, accounts[0], amount, {from: accounts[1]});
         let stateAfter = await getState(ctx, accounts[0]);
         await assertBorrowPoolStateChange(ctx.interestRateModel, stateBefore, stateAfter,
@@ -182,8 +221,8 @@ contract('test borrow pool', async (accounts) => {
         liquidation = true;
         let stateBefore = await getState(ctx, accounts[1]);
         await ctx.oracle.setPrice('0x0000000000000000000000000000000000000000',
-            web3.utils.toBN(web3.utils.toWei('1000')));
-        let amount = web3.utils.toBN(web3.utils.toWei('6666'));
+            web3.utils.toBN(web3.utils.toWei('600')));
+        let amount = web3.utils.toBN(web3.utils.toWei('3333'));
         await ctx.borrowPool.liquidateBorrow(ctx.cfsc.address, ctx.dEther.address, accounts[1], amount);
         let stateAfter = await getState(ctx, accounts[1]);
         await assertBorrowPoolStateChange(ctx.interestRateModel, stateBefore, stateAfter,

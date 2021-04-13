@@ -139,12 +139,10 @@ contract Borrows is BorrowsStorage, BorrowsInterface, Exponential, ErrorReporter
             CFSC.burn(amount);
         } else {
             /* scAmount = cfscAmount * cfscPrice / scPrice */
-            (MathError err, Exp memory priceRatio) = divExp(Exp(expScale), Exp(oracle.getPrice(scAddr)));
-            require(err == MathError.NO_ERROR, "parse price failed");
-            uint scAmount;
-            (err, scAmount) = mulScalarTruncate(priceRatio, amount);
-            require(err == MathError.NO_ERROR, "parse amount failed");
-            require(scAddr.safeTransferFrom(payer, exchangePool, scAmount), "transferFrom asset to exchange pool failed");
+            Exp memory assetPrice = Exp(oracle.getPrice(scAddr));
+            Exp memory cfscValue = Exp(amount);
+            Exp memory scAmount = div_(cfscValue, assetPrice);
+            require(scAddr.safeTransferFrom(payer, exchangePool, scAmount.mantissa), "transferFrom asset to exchange pool failed");
         }
         uint userBorrowsNew = sub_(userBorrows, amount);
         accountBorrows[borrower] = AccountBorrowSnapshot(borrowIndex, userBorrowsNew);

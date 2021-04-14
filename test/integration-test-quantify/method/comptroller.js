@@ -1,10 +1,10 @@
 const math = require('./math');
 
-function marketSupplierDistributionCFGT(totalSupply, userBalance, supplySpeed, blockDelta) {
+function marketSupplierDistributionCFGT(totalSupply, userBalance, marketSupplySpeed, blockDelta) {
     if (totalSupply.cmpn(0) === 0 || userBalance.cmpn(0) === 0) {
         return 0;
     }
-    let cfgtAccrued = supplySpeed.muln(blockDelta);
+    let cfgtAccrued = marketSupplySpeed.muln(blockDelta);
     return cfgtAccrued.mul(userBalance).div(totalSupply);
 }
 
@@ -12,11 +12,11 @@ function marketSupplierDistributionCFGTByIndex(globalIndex, userIndex, userBalan
     return globalIndex.sub(userIndex).mul(userBalance).div(math.doubleScale);
 }
 
-function marketSupplierDistributionInterest(totalSupply, userBalance, interestAccrued) {
+function marketSupplierDistributionInterest(totalSupply, userBalance, marketInterestAccrued) {
     if (totalSupply.cmpn(0) === 0 || userBalance.cmpn(0) === 0) {
         return 0;
     }
-    return interestAccrued.mul(userBalance).div(totalSupply);
+    return marketInterestAccrued.mul(userBalance).div(totalSupply);
 }
 
 function marketSupplierDistributionInterestByIndex(globalIndex, userIndex, userBalance) {

@@ -22,6 +22,7 @@ const IERC20 = artifacts.require("IERC20");
 const context = require('./method/context');
 const borrow = require('./method/borrow-pool');
 const ep = require('./method/exchange-pool');
+const math = require('./method/math');
 
 let liquidation = false;
 const maxUint256 = web3.utils.toBN(2).pow(web3.utils.toBN(256)).sub(web3.utils.toBN(1));
@@ -272,8 +273,6 @@ async function getState(ctx, user) {
     }
 }
 
-const mismatchThreshold = 100000; // 100000 / 1e18 = 1e13
-
 // if borrow, borrowAmountChange > 0; if repayBorrow/liquidateBorrow, borrowAmountChange < 0
 async function assertBorrowPoolStateChange(interestRateModel, stateBefore, stateAfter, borrowAmount, repayAmount) {
     let blockDelta = stateAfter.borrowPoolState.accrualBlock - stateBefore.borrowPoolState.accrualBlock;
@@ -286,7 +285,7 @@ async function assertBorrowPoolStateChange(interestRateModel, stateBefore, state
         let gap = localStateTotalBorrows.cmp(stateAfter.borrowPoolState.totalBorrows) > 0 ?
             localStateTotalBorrows.sub(stateAfter.borrowPoolState.totalBorrows) :
             stateAfter.borrowPoolState.totalBorrows.sub(localStateTotalBorrows);
-        assert.ok(gap.cmpn(mismatchThreshold) <= 0);
+        assert.ok(gap.cmpn(math.expScaleMismatchThreshold) <= 0);
     }
     assert.equal(localState.borrowIndex.toString(), stateAfter.borrowPoolState.borrowIndex.toString());
     // if comptroller distribute interest to supplier, the assert will fail
@@ -304,7 +303,7 @@ async function assertBorrowPoolStateChange(interestRateModel, stateBefore, state
         let gap = localAccountBorrows.cmp(stateAfter.borrowPoolState.accountBorrows) > 0 ?
             localAccountBorrows.sub(stateAfter.borrowPoolState.accountBorrows) :
             stateAfter.borrowPoolState.accountBorrows.sub(localAccountBorrows);
-        assert.ok(gap.cmpn(mismatchThreshold) <= 0);
+        assert.ok(gap.cmpn(math.expScaleMismatchThreshold) <= 0);
     } else {
         assert.equal(stateAfter.borrowPoolState.accountBorrows.toString(), '0');
     }

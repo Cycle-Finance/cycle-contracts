@@ -46,9 +46,9 @@ module.exports = async function (depolyer) {
     let dWBTCProxy = await dTokenProxy.new(
         "Cycle Finance WBTC Deposit Token", "dWBTC", WBTC.address, DERC20.address, emptyData);
     let dUSDCProxy = await dTokenProxy.new(
-        "Cycle Finance USDT Deposit Token", "dUSDC", USDC.address, DERC20.address, emptyData);
+        "Cycle Finance USDC Deposit Token", "dUSDC", USDC.address, DERC20.address, emptyData);
     let dUSDTProxy = await dTokenProxy.new(
-        "Cycle Finance USDC Deposit Token", "dUSDT", USDT.address, DERC20.address, emptyData);
+        "Cycle Finance USDT Deposit Token", "dUSDT", USDT.address, DERC20.address, emptyData);
     /* initialize system*/
     // feed price, for test
     let oracle = await TestOracle.deployed();

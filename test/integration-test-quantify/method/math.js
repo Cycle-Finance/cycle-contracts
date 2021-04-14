@@ -1,6 +1,9 @@
 const expScale = web3.utils.toBN(web3.utils.toWei('1'));
 const doubleScale = expScale.mul(expScale);
 
+const expScaleMismatchThreshold = 1000000; // 1e-12
+const doubleScaleMismatchThreshold = expScaleMismatchThreshold * expScaleMismatchThreshold;
+
 function mul_(a, b) {
     return a.mul(b).div(expScale);
 }
@@ -38,5 +41,7 @@ module.exports = {
     divAndTruncate,
     fraction,
     expToDecimals,
-    doubleToDecimals
+    doubleToDecimals,
+    expScaleMismatchThreshold,
+    doubleScaleMismatchThreshold
 };

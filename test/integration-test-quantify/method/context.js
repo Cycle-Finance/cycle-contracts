@@ -66,14 +66,28 @@ async function borrowPoolState(contract, user) {
 }
 
 async function getState(ctx, market, user) {
-    let comp = compState(ctx.comptroller, market, user);
-    let dToken = marketState(market, user);
-    let bp = borrowPoolState(ctx.borrowPool, user);
+    let comp = await compState(ctx.comptroller, market, user);
+    let dToken = await marketState(market, user);
+    let bp = await borrowPoolState(ctx.borrowPool, user);
+    let cfgtBalance = await ctx.CFGT.balanceOf(user);
+    let cfscBalance = await ctx.CFSC.balanceOf(user);
+    let compCfscBalance = await ctx.CFSC.balanceOf(ctx.comptroller.address);
+    let bpCfscBalance = await ctx.CFSC.balanceOf(ctx.borrowPool.address);
+    let sysLiquidity = await ctx.comptroller.getSystemLiquidity();
+    assert.equal(sysLiquidity[0].toString(), '0');
+    let accountLiquidity = await ctx.comptroller.getAccountLiquidity(user);
+    assert.equal(accountLiquidity[0].toString(), '0');
     return {
         comp: comp,
         dToken: dToken,
         bp: bp,
+        cfgtBalance: cfgtBalance,
+        cfscBalance: cfscBalance,
+        compCfscBalance: compCfscBalance,
+        bpCfscBalance: bpCfscBalance,
+        sysLiquidity: [sysLiquidity[0], sysLiquidity[1]],
+        accountLiquidity: [accountLiquidity[0], accountLiquidity[1]],
     };
 }
 
-module.exports = {makeBlock, borrowPoolState, marketState, compState};
+module.exports = {makeBlock, borrowPoolState, marketState, getState};

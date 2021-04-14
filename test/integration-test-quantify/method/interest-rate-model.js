@@ -11,6 +11,9 @@ function baseRatePerBlock(baseRatePerYear) {
 }
 
 function utilizationRate(depositValue, borrowValue) {
+    if (depositValue.cmpn(0) === 0 || borrowValue.cmpn(0) === 0) {
+        return web3.utils.toBN(0);
+    }
     return math.div_(borrowValue, depositValue);
 }
 

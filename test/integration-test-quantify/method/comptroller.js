@@ -8,11 +8,19 @@ function marketSupplierDistributionCFGT(totalSupply, userBalance, supplySpeed, b
     return cfgtAccrued.mul(userBalance).div(totalSupply);
 }
 
+function marketSupplierDistributionCFGTByIndex(globalIndex, userIndex, userBalance) {
+    return globalIndex.sub(userIndex).mul(userBalance).div(math.doubleScale);
+}
+
 function marketSupplierDistributionInterest(totalSupply, userBalance, interestAccrued) {
     if (totalSupply.cmpn(0) === 0 || userBalance.cmpn(0) === 0) {
         return 0;
     }
     return interestAccrued.mul(userBalance).div(totalSupply);
+}
+
+function marketSupplierDistributionInterestByIndex(globalIndex, userIndex, userBalance) {
+    return globalIndex.sub(userIndex).mul(userBalance).div(math.doubleScale);
 }
 
 function borrowerDistributionCFGT(totalBorrows, userBorrows, borrowSpeed, blockDelta) {
@@ -21,6 +29,10 @@ function borrowerDistributionCFGT(totalBorrows, userBorrows, borrowSpeed, blockD
     }
     let cfgtAccrued = borrowSpeed.muln(blockDelta);
     return cfgtAccrued.mul(userBorrows).div(totalBorrows);
+}
+
+function borrowerDistributionCFGTByIndex(globalIndex, userIndex, userBorrows, borrowPoolIndex) {
+    return globalIndex.sub(userIndex).mul(math.div_(userBorrows, borrowPoolIndex)).div(math.doubleScale);
 }
 
 function calculateSeizeToken(assetPrice, repayAmount) {
@@ -92,6 +104,9 @@ module.exports = {
     marketSupplierDistributionCFGT,
     marketSupplierDistributionInterest,
     borrowerDistributionCFGT,
+    marketSupplierDistributionCFGTByIndex,
+    marketSupplierDistributionInterestByIndex,
+    borrowerDistributionCFGTByIndex,
     calculateSeizeToken,
     calculateSystemLiquidity,
     calculateCurrentSystemLiquidity,

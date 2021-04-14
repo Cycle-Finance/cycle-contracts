@@ -71,18 +71,20 @@ contract('test comptroller', async (accounts) => {
         // transfer asset to other accounts
         let wbtcAmount = 1000 * (10 ** 8);
         let usdAmount = 1000000 * (10 ** 6);
-        wbtc.transfer(accounts[1], wbtcAmount);
-        wbtc.transfer(accounts[2], wbtcAmount);
-        wbtc.transfer(accounts[3], wbtcAmount);
-        wbtc.transfer(accounts[4], wbtcAmount);
-        usdc.transfer(accounts[1], usdAmount);
-        usdc.transfer(accounts[2], usdAmount);
-        usdc.transfer(accounts[3], usdAmount);
-        usdc.transfer(accounts[4], usdAmount);
-        usdt.transfer(accounts[1], usdAmount);
-        usdt.transfer(accounts[2], usdAmount);
-        usdt.transfer(accounts[3], usdAmount);
-        usdt.transfer(accounts[4], usdAmount);
+        await wbtc.transfer(accounts[1], wbtcAmount);
+        await wbtc.transfer(accounts[2], wbtcAmount);
+        await wbtc.transfer(accounts[3], wbtcAmount);
+        await wbtc.transfer(accounts[4], wbtcAmount);
+        await usdc.transfer(accounts[1], usdAmount);
+        await usdc.transfer(accounts[2], usdAmount);
+        await usdc.transfer(accounts[3], usdAmount);
+        await usdc.transfer(accounts[4], usdAmount);
+        await usdt.transfer(accounts[1], usdAmount);
+        await usdt.transfer(accounts[2], usdAmount);
+        await usdt.transfer(accounts[3], usdAmount);
+        await usdt.transfer(accounts[4], usdAmount);
+        // transfer preserved CFGT to other accounts
+        await CFGT.transfer(accounts[9], await CFGT.balanceOf(accounts[0]));
         // fetch system params
         param.supplySpeed = await comptroller.supplySpeed();
         param.borrowSpeed = await comptroller.borrowSpeed();
@@ -103,19 +105,30 @@ contract('test comptroller', async (accounts) => {
         let depositAmount = web3.utils.toBN(web3.utils.toWei('10'));
         await ctx.dEther.mint(depositAmount, {value: depositAmount});
         let stateAfter = await context.getState(ctx, ctx.dEther, accounts[0]);
-        assertStateChange(stateBefore, stateAfter, KIND_SUPPLIER);
+        console.log('block %s, index %s  %s, balance %s', stateAfter.comp.refreshedBlock, stateAfter.comp.marketSupplyIndex,
+            stateAfter.comp.supplierIndex, stateAfter.cfgtBalance);
+        assertStateChange(stateBefore, stateAfter, KIND_SUPPLIER, web3.utils.toBN(0));
         stateAccount0 = stateAfter
     });
     let stateAccount1 = {}
     it('accounts[1] deposit after some blocks', async () => {
         stateAccount1 = await context.getState(ctx, ctx.dEther, accounts[1]);
         let depositAmount = web3.utils.toBN(web3.utils.toWei('10'));
-        await ctx.dEther.mint(depositAmount, {value: depositAmount});
+        await ctx.dEther.mint(depositAmount, {value: depositAmount, from: accounts[1]});
+        let stateAfter1 = await context.getState(ctx, ctx.dEther, accounts[1]);
+        console.log('block %s, index %s  %s, balance %s', stateAfter1.comp.refreshedBlock, stateAfter1.comp.marketSupplyIndex,
+            stateAfter1.comp.supplierIndex, stateAfter1.cfgtBalance);
+        assertStateChange(stateAccount1, stateAfter1, KIND_SUPPLIER, web3.utils.toBN(0));
+        stateAccount1 = stateAfter1;
         await ctx.comptroller.claimAllProfit([accounts[0], accounts[1]]);
         let stateAfter0 = await context.getState(ctx, ctx.dEther, accounts[0]);
-        let stateAfter1 = await context.getState(ctx, ctx.dEther, accounts[1]);
-        assertStateChange(stateAccount0, stateAfter0, KIND_SUPPLIER);
-        assertStateChange(stateAccount1, stateAfter1, KIND_SUPPLIER);
+        stateAfter1 = await context.getState(ctx, ctx.dEther, accounts[1]);
+        console.log('block %s, index %s  %s, balance %s', stateAfter0.comp.refreshedBlock, stateAfter0.comp.marketSupplyIndex,
+            stateAfter0.comp.supplierIndex, stateAfter0.cfgtBalance);
+        console.log('block %s, index %s  %s, balance %s', stateAfter1.comp.refreshedBlock, stateAfter1.comp.marketSupplyIndex,
+            stateAfter1.comp.supplierIndex, stateAfter1.cfgtBalance);
+        assertStateChange(stateAccount1, stateAfter1, KIND_SUPPLIER, web3.utils.toBN(0));
+        assertBalanceChange(stateAccount0, stateAfter0, KIND_SUPPLIER, web3.utils.toBN(0))
         let cfgtGap0 = stateAfter0.cfgtBalance.sub(stateAccount0.cfgtBalance);
         let cfgtGap1 = stateAfter1.cfgtBalance.sub(stateAccount1.cfgtBalance);
         assert.ok(cfgtGap0.cmpn(0) > 0);
@@ -126,7 +139,8 @@ contract('test comptroller', async (accounts) => {
     });
 });
 
-function assertStateChange(stateBefore, stateAfter, userKind) {
+// check contract state change
+function assertStateChange(stateBefore, stateAfter, userKind, borrowAmount) {
     let refreshBlockDelta = stateAfter.comp.refreshedBlock - stateBefore.comp.refreshedBlock;
     let interestBlockDelta = stateAfter.bp.accrualBlock - stateBefore.bp.accrualBlock;
     assert.equal(refreshBlockDelta, interestBlockDelta);
@@ -151,12 +165,46 @@ function assertStateChange(stateBefore, stateAfter, userKind) {
     // check CFSC amount
     // interestAccrued: borrowPool -> comptroller
     // interestDistribution: comptroller -> supplier
-    let supplierCFSCDelta = stateAfter.cfscBalance.sub(stateBefore.cfscBalance);
+    let supplierCFSCDelta = stateAfter.cfscBalance.sub(stateBefore.cfscBalance.add(borrowAmount));
     assert.equal(supplierCFSCDelta.toString(), localState.supplierInterest.toString());
     let compCFSCDelta = stateAfter.compCfscBalance.sub(stateBefore.compCfscBalance);
     let cfscDelta = compCFSCDelta.add(supplierCFSCDelta);
     assert.equal(cfscDelta.toString(), localState.interestAccrued.interestDelta.toString());
     cfscLocalTotalSupply = cfscLocalTotalSupply.add(cfscDelta);
+    // check CFGT amount
+    let cfgtDelta = stateAfter.cfgtBalance.sub(stateBefore.cfgtBalance).add(
+        stateAfter.comp.accruedCFGT.sub(stateBefore.comp.accruedCFGT));
+    cfgtDelta = cfgtDelta.toString();
+    switch (userKind) {
+        case KIND_SUPPLIER:
+            assert.equal(cfgtDelta, localState.supplierCFGT.toString());
+            break;
+        case KIND_BORROWER:
+            assert.equal(cfgtDelta, localState.borrowerCFGT.toString());
+            break;
+        case KIND_LIQUIDATOR:
+            assert.equal(cfgtDelta, localState.supplierCFGT.toString());
+            break;
+        case KIND_LIQUIDATEE:
+            let totalCFGT = localState.borrowerCFGT.add(localState.supplierCFGT);
+            assert.equal(cfgtDelta, totalCFGT.toString());
+            break;
+        default:
+            throw new Error('unsupported kind');
+    }
+}
+
+// check user CFGT and CFSC distribution
+function assertBalanceChange(stateBefore, stateAfter, userKind, borrowAmount) {
+    let localState = {};
+    localState.supplierInterest = localComp.marketSupplierDistributionInterestByIndex(
+        stateAfter.comp.marketInterestIndex, stateBefore.comp.supplierInterestIndex, stateBefore.dToken.userBalance);
+    localState.supplierCFGT = localComp.marketSupplierDistributionCFGTByIndex(
+        stateAfter.comp.marketSupplyIndex, stateBefore.comp.supplierIndex, stateBefore.dToken.userBalance);
+    localState.borrowerCFGT = localComp.borrowerDistributionCFGTByIndex(
+        stateAfter.comp.borrowIndex, stateBefore.comp.borrowerIndex, stateBefore.bp.accountBorrows, stateBefore.bp.borrowIndex);
+    let supplierCFSCDelta = stateAfter.cfscBalance.sub(stateBefore.cfscBalance.add(borrowAmount));
+    assert.equal(supplierCFSCDelta.toString(), localState.supplierInterest.toString());
     // check CFGT amount
     let cfgtDelta = stateAfter.cfgtBalance.sub(stateBefore.cfgtBalance).add(
         stateAfter.comp.accruedCFGT.sub(stateBefore.comp.accruedCFGT));

@@ -26,7 +26,7 @@ function expToDecimals(a) {
 }
 
 function doubleToDecimals(a) {
-    return a / expScale;
+    return a / doubleScale;
 }
 
 module.exports = {

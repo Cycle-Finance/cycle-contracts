@@ -19,7 +19,6 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
 
     event RegisterMarket(address dToken);
     event ReduceReserves(address indexed owner, uint amount);
-    //    event NewOracle(IOracle oldOracle, IOracle newOracle);
     event NewPublicBorrower(address oldPublicBorrower, address newPublicBorrower);
     event NewBorrowPool(BorrowsInterface oldBorrowPool, BorrowsInterface newBorrowPool);
 
@@ -49,6 +48,9 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
     /*
     * @notice accrue interest, update interest index, update supply CFGT index, refresh market deposit
     * @notice the function could be invoked individually
+    * @notice we should make sure that the updates of marketDeposit and marketTotalSupply is synchronized
+    * @notice but we mustn't update deposit value before update index, because the change of index represent
+    * @notice the settlement of elder states
     */
     function refreshMarketDeposit() public {
         uint deltaBlock = sub_(block.number, refreshedBlock);
@@ -92,6 +94,18 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
         totalDeposit = tempTotalDeposit;
     }
 
+    function updateDepositOnly() internal {
+        uint tempTotalDeposit = 0;
+        for (uint i = 0; i < markets.length; i++) {
+            address market = markets[i];
+            /* update market deposit */
+            uint deposit = DTokenInterface(market).depositValue();
+            marketDeposit[market] = deposit;
+            tempTotalDeposit += deposit;
+        }
+        totalDeposit = tempTotalDeposit;
+    }
+
     // @return 0 means that no error
     function mintAllowed(address dToken, address minter, uint amount) public override returns (string memory){
         require(!mintPaused[dToken], "mint is paused");
@@ -104,7 +118,9 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
     }
 
     // @return 0 means that no error
+    /// @notice as the synchronization of market deposit value and total supply, we should update market deposit at here
     function mintVerify(address, address, uint) public override {
+        updateDepositOnly();
     }
 
     function redeemAllowed(address dToken, address redeemer, uint redeemTokens)
@@ -129,7 +145,9 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
         return "";
     }
 
+    /// @notice as the synchronization of market deposit value and total supply, we should update market deposit at here
     function redeemVerify(address, address, uint) public override {
+        updateDepositOnly();
     }
 
     function borrowAllowed(address user, uint borrowAmount) public override returns (string memory){

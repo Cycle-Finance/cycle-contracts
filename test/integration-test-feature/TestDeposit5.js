@@ -61,18 +61,18 @@ contract('deposit test case 5', async (accounts) => {
         // transfer asset to other accounts
         let wbtcAmount = 1000 * (10 ** 8);
         let usdAmount = 1000000 * (10 ** 6);
-        wbtc.transfer(accounts[1], wbtcAmount);
-        wbtc.transfer(accounts[2], wbtcAmount);
-        wbtc.transfer(accounts[3], wbtcAmount);
-        wbtc.transfer(accounts[4], wbtcAmount);
-        usdc.transfer(accounts[1], usdAmount);
-        usdc.transfer(accounts[2], usdAmount);
-        usdc.transfer(accounts[3], usdAmount);
-        usdc.transfer(accounts[4], usdAmount);
-        usdt.transfer(accounts[1], usdAmount);
-        usdt.transfer(accounts[2], usdAmount);
-        usdt.transfer(accounts[3], usdAmount);
-        usdt.transfer(accounts[4], usdAmount);
+        await wbtc.transfer(accounts[1], wbtcAmount);
+        await wbtc.transfer(accounts[2], wbtcAmount);
+        await wbtc.transfer(accounts[3], wbtcAmount);
+        await wbtc.transfer(accounts[4], wbtcAmount);
+        await usdc.transfer(accounts[1], usdAmount);
+        await usdc.transfer(accounts[2], usdAmount);
+        await usdc.transfer(accounts[3], usdAmount);
+        await usdc.transfer(accounts[4], usdAmount);
+        await usdt.transfer(accounts[1], usdAmount);
+        await usdt.transfer(accounts[2], usdAmount);
+        await usdt.transfer(accounts[3], usdAmount);
+        await usdt.transfer(accounts[4], usdAmount);
     });
     it('deposit-5-1: accounts[1] deposit 10 ETH, compare profit with accounts[0]', async () => {
         let amount = web3.utils.toWei('10');

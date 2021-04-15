@@ -90,4 +90,20 @@ async function getState(ctx, market, user) {
     };
 }
 
-module.exports = {makeBlock, borrowPoolState, marketState, getState};
+async function userTotalDepositValue(ctx, user) {
+    let ethValue = await ctx.dEther.userDepositValue(user);
+    let wbtcValue = await ctx.dWBTC.userDepositValue(user);
+    let usdcValue = await ctx.dUSDC.userDepositValue(user);
+    let usdtValue = await ctx.dUSDT.userDepositValue(user);
+    return ethValue.add(wbtcValue).add(usdcValue).add(usdtValue);
+}
+
+async function totalMarketDepositValue(ctx) {
+    let ethValue = await ctx.dEther.depositValue();
+    let wbtcValue = await ctx.dWBTC.depositValue();
+    let usdcValue = await ctx.dUSDC.depositValue();
+    let usdtValue = await ctx.dUSDT.depositValue();
+    return ethValue.add(wbtcValue).add(usdcValue).add(usdtValue);
+}
+
+module.exports = {makeBlock, borrowPoolState, marketState, getState, userTotalDepositValue, totalMarketDepositValue};

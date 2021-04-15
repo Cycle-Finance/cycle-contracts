@@ -23,8 +23,6 @@ const context = require('./method/context');
 const math = require('./method/math');
 const utils = require('./comptrollerutils');
 
-// TODO: check system liquidity and user liquidity
-
 /*
 * we compare the difference of CFGT distribution at different market and different user
 * */
@@ -68,30 +66,13 @@ contract('test comptroller with deposit', async (accounts) => {
         let wbtcAmount = 1000 * (10 ** 8);
         let usdAmount = 1000000 * (10 ** 6);
         await wbtc.transfer(accounts[1], wbtcAmount);
-        await wbtc.transfer(accounts[2], wbtcAmount);
-        await wbtc.transfer(accounts[3], wbtcAmount);
-        await wbtc.transfer(accounts[4], wbtcAmount);
         await usdc.transfer(accounts[1], usdAmount);
-        await usdc.transfer(accounts[2], usdAmount);
-        await usdc.transfer(accounts[3], usdAmount);
-        await usdc.transfer(accounts[4], usdAmount);
         await usdt.transfer(accounts[1], usdAmount);
-        await usdt.transfer(accounts[2], usdAmount);
-        await usdt.transfer(accounts[3], usdAmount);
-        await usdt.transfer(accounts[4], usdAmount);
         // transfer preserved CFGT to other accounts
         await CFGT.transfer(accounts[9], await CFGT.balanceOf(accounts[0]));
         // fetch system params
         param.supplySpeed = await comptroller.supplySpeed();
         param.borrowSpeed = await comptroller.borrowSpeed();
-        param.collateralFactor = [
-            await comptroller.collateralFactor(dEther.address),
-            await comptroller.collateralFactor(dWBTC.address),
-            await comptroller.collateralFactor(dUSDC.address),
-            await comptroller.collateralFactor(dUSDT.address)
-        ];
-        param.liquidationIncentive = await comptroller.liquidationIncentive();
-        param.reserveFactor = await borrowPool.reserveFactor();
         param.multiplierPerYear = web3.utils.toBN(math.expScale * 0.3);
         param.baseRatePerYear = web3.utils.toBN(math.expScale * 0.025);
         param.ethPrice = await oracle.getPrice(await dEther.underlyingAsset());
@@ -105,6 +86,9 @@ contract('test comptroller with deposit', async (accounts) => {
         await ctx.dEther.mint(depositAmount, {value: depositAmount});
         let stateAfter = await context.getState(ctx, ctx.dEther, accounts[0]);
         utils.assertStateChange(stateBefore, stateAfter, utils.KIND_SUPPLIER, web3.utils.toBN(0), param);
+        // check total deposit
+        let totalDeposit = await context.totalMarketDepositValue(ctx);
+        assert.equal(totalDeposit.toString(), stateAfter.comp.totalDeposit.toString());
     });
     it('accounts[0] deposit 1 ETH again', async () => {
         let stateBefore = await context.getState(ctx, ctx.dEther, accounts[0]);
@@ -115,6 +99,9 @@ contract('test comptroller with deposit', async (accounts) => {
         // check some specific value
         let localCFGTDelta = stateAfter.comp.refreshedBlock.sub(stateBefore.comp.refreshedBlock).mul(param.supplySpeed);
         assert.equal(localCFGTDelta.toString(), stateAfter.cfgtBalance.toString());
+        // check total deposit
+        let totalDeposit = await context.totalMarketDepositValue(ctx);
+        assert.equal(totalDeposit.toString(), stateAfter.comp.totalDeposit.toString());
     });
     it('accounts[1] deposit 2 ETH, compare some difference between accounts', async () => {
         let stateAccount0 = await context.getState(ctx, ctx.dEther, accounts[0]);
@@ -123,6 +110,9 @@ contract('test comptroller with deposit', async (accounts) => {
         await ctx.dEther.mint(depositAmount, {value: depositAmount, from: accounts[1]});
         let stateAfter1 = await context.getState(ctx, ctx.dEther, accounts[1]);
         utils.assertStateChange(stateAccount1, stateAfter1, utils.KIND_SUPPLIER, web3.utils.toBN(0), param);
+        // check total deposit
+        let totalDeposit = await context.totalMarketDepositValue(ctx);
+        assert.equal(totalDeposit.toString(), stateAfter1.comp.totalDeposit.toString());
         stateAccount1 = stateAfter1;
         await ctx.comptroller.claimAllProfit([accounts[0], accounts[1]]);
         let stateAfter0 = await context.getState(ctx, ctx.dEther, accounts[0]);
@@ -145,6 +135,9 @@ contract('test comptroller with deposit', async (accounts) => {
         await ctx.dWBTC.mint(depositAmount);
         let stateAfter = await context.getState(ctx, ctx.dWBTC, accounts[0]);
         utils.assertStateChange(stateBefore, stateAfter, utils.KIND_SUPPLIER, web3.utils.toBN(0), param);
+        // check total deposit
+        let totalDeposit = await context.totalMarketDepositValue(ctx);
+        assert.equal(totalDeposit.toString(), stateAfter.comp.totalDeposit.toString());
     });
     it('accounts[0] deposit 1000 USDC', async () => {
         let stateBefore = await context.getState(ctx, ctx.dUSDC, accounts[0]);
@@ -153,6 +146,9 @@ contract('test comptroller with deposit', async (accounts) => {
         await ctx.dUSDC.mint(depositAmount);
         let stateAfter = await context.getState(ctx, ctx.dUSDC, accounts[0]);
         utils.assertStateChange(stateBefore, stateAfter, utils.KIND_SUPPLIER, web3.utils.toBN(0), param);
+        // check total deposit
+        let totalDeposit = await context.totalMarketDepositValue(ctx);
+        assert.equal(totalDeposit.toString(), stateAfter.comp.totalDeposit.toString());
     });
     it('accounts[0] deposit 1000 USDT', async () => {
         let stateBefore = await context.getState(ctx, ctx.dUSDT, accounts[0]);
@@ -161,6 +157,9 @@ contract('test comptroller with deposit', async (accounts) => {
         await ctx.dUSDT.mint(depositAmount);
         let stateAfter = await context.getState(ctx, ctx.dUSDT, accounts[0]);
         utils.assertStateChange(stateBefore, stateAfter, utils.KIND_SUPPLIER, web3.utils.toBN(0), param);
+        // check total deposit
+        let totalDeposit = await context.totalMarketDepositValue(ctx);
+        assert.equal(totalDeposit.toString(), stateAfter.comp.totalDeposit.toString());
     });
     it('accounts[0] profit at different deposit value should be different', async () => {
         // clear state
@@ -206,12 +205,7 @@ contract('test comptroller with deposit', async (accounts) => {
         assert.ok(wbtcCFGTGap.cmp(ethCFGTGap) > 0);
         assert.ok(ethCFGTGap.cmp(usdtCFGTGap) > 0);
         assert.ok(usdtCFGTGap.cmp(usdcCFGTGap) > 0);
-        // exact ratio
-        console.log('asdfasdfasfaewerqr %s, %s',
-            ethCFGTGap.mul(param.wbtcPrice).mul(web3.utils.toBN(10 ** 8)),
-            wbtcCFGTGap.mul(param.ethPrice).muln(2).mul(math.expScale));
-        console.log('asdfasdfasfaewerqr %s, %s', usdtCFGTGap.mul(param.usdcPrice).mul(web3.utils.toBN(10 ** 6)),
-            usdcCFGTGap.mul(param.usdtPrice).mul(web3.utils.toBN(10 ** 6)));
+        // check exact ratio
         // truncate double scale: CFGT decimals and price calculate expScale
         // 1BTC : 2ETH
         assert.ok(ethCFGTGap.mul(param.wbtcPrice).mul(web3.utils.toBN(10 ** 8)).div(math.doubleScale)
@@ -255,6 +249,9 @@ contract('test comptroller with deposit', async (accounts) => {
         await ctx.dWBTC.mint(depositAmount, {from: accounts[1]});
         let stateAfter = await context.getState(ctx, ctx.dWBTC, accounts[1]);
         utils.assertStateChange(stateBefore, stateAfter, utils.KIND_SUPPLIER, web3.utils.toBN(0), param);
+        // check total deposit
+        let totalDeposit = await context.totalMarketDepositValue(ctx);
+        assert.equal(totalDeposit.toString(), stateAfter.comp.totalDeposit.toString());
     });
     it('accounts[1] deposit 1000 USDC', async () => {
         let stateBefore = await context.getState(ctx, ctx.dUSDC, accounts[1]);
@@ -263,6 +260,9 @@ contract('test comptroller with deposit', async (accounts) => {
         await ctx.dUSDC.mint(depositAmount, {from: accounts[1]});
         let stateAfter = await context.getState(ctx, ctx.dUSDC, accounts[1]);
         utils.assertStateChange(stateBefore, stateAfter, utils.KIND_SUPPLIER, web3.utils.toBN(0), param);
+        // check total deposit
+        let totalDeposit = await context.totalMarketDepositValue(ctx);
+        assert.equal(totalDeposit.toString(), stateAfter.comp.totalDeposit.toString());
     });
     it('accounts[1] deposit 1000 USDT', async () => {
         let stateBefore = await context.getState(ctx, ctx.dUSDT, accounts[1]);
@@ -271,6 +271,9 @@ contract('test comptroller with deposit', async (accounts) => {
         await ctx.dUSDT.mint(depositAmount, {from: accounts[1]});
         let stateAfter = await context.getState(ctx, ctx.dUSDT, accounts[1]);
         utils.assertStateChange(stateBefore, stateAfter, utils.KIND_SUPPLIER, web3.utils.toBN(0), param);
+        // check total deposit
+        let totalDeposit = await context.totalMarketDepositValue(ctx);
+        assert.equal(totalDeposit.toString(), stateAfter.comp.totalDeposit.toString());
     });
     it('profit at same deposit value of account should be same', async () => {
         await ctx.comptroller.claimAllProfit([accounts[0], accounts[1]]);
@@ -303,8 +306,8 @@ contract('test comptroller with deposit', async (accounts) => {
         let gap1 = cfgtBalance1After.sub(cfgtBalance1Before);
         assert.ok(gap0.cmp(gap1) > 0);
         // exact check
-        let value0 = await userTotalDepositValue(ctx, accounts[0]);
-        let value1 = await userTotalDepositValue(ctx, accounts[1]);
+        let value0 = await context.userTotalDepositValue(ctx, accounts[0]);
+        let value1 = await context.userTotalDepositValue(ctx, accounts[1]);
         assert.ok(math.mulScalarAndTruncate(value1, gap0).sub(math.mulScalarAndTruncate(value0, gap1))
             .cmpn(math.expScaleMismatchThreshold) <= 0);
     });
@@ -338,11 +341,3 @@ contract('test comptroller with deposit', async (accounts) => {
         assert.equal(usdtNewCFGTGap.toString(), usdtCFGTGap.toString());
     });
 });
-
-async function userTotalDepositValue(ctx, user) {
-    let ethValue = await ctx.dEther.userDepositValue(user);
-    let wbtcValue = await ctx.dWBTC.userDepositValue(user);
-    let usdcValue = await ctx.dUSDC.userDepositValue(user);
-    let usdtValue = await ctx.dUSDT.userDepositValue(user);
-    return ethValue.add(wbtcValue).add(usdcValue).add(usdtValue);
-}

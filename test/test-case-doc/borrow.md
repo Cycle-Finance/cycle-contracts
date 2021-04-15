@@ -110,7 +110,7 @@ Then public borrower borrow some value and not reach max system UR. Case should 
 
 ### borrow-4-2
 
-like [borrow-4-1], but user borrows exceed public borrow threshold. Case should be failed.
+like [borrow-4-1](#borrow-4-1), but user borrows exceed public borrow threshold. Case should be failed.
 
 - [SimpleBorrow](./test-function.md#SimpleBorrow)(dEther, accounts[0], 41000 CFSC)
 - [FailBorrow](./test-function.md#FailBorrow)(dEther, accounts[1], 9000 CFSC, "insufficient system liquidity")
@@ -120,8 +120,8 @@ like [borrow-4-1], but user borrows exceed public borrow threshold. Case should 
 
 ### borrow-4-3
 
-like [borrow-4-1], user borrows doesn't exceed public borrow threshold, but public borrower borrow value exceed max
-system UR. Case should be failed.
+like [borrow-4-1](#borrow-4-1), user borrows doesn't exceed public borrow threshold, but public borrower borrow value
+exceed max system UR. Case should be failed.
 
 - [SimpleBorrow](./test-function.md#SimpleBorrow)(dEther, accounts[0], 33000 CFSC)
 - [FailBorrow](./test-function.md#FailBorrow)(dEther, accounts[1], 17000 CFSC, "insufficient system liquidity")

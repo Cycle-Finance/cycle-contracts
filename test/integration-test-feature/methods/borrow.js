@@ -4,11 +4,13 @@ async function simpleBorrow(ctx, market, user, amount) {
     let comptrollerStateBefore = await context.comptrollerState(ctx, market, user);
     let borrowPoolStateBefore = await context.borrowPoolState(ctx, user);
     let userBalanceStateBefore = await context.userBalanceState(ctx, market, user);
+    let cfscTotalSupplyBefore = await ctx.CFSC.totalSupply();
     await ctx.borrowPool.borrow(amount, {from: user});
     await ctx.comptroller.refreshMarketDeposit();
     let comptrollerStateAfter = await context.comptrollerState(ctx, market, user);
     let borrowPoolStateAfter = await context.borrowPoolState(ctx, user);
     let userBalanceStateAfter = await context.userBalanceState(ctx, market, user);
+    let cfscTotalSupplyAfter = await ctx.CFSC.totalSupply();
     assert.ok(comptrollerStateAfter.refreshedBlock.cmp(comptrollerStateBefore.refreshedBlock) === 1);
     assert.equal(comptrollerStateBefore.totalDeposit.toString(),
         comptrollerStateAfter.totalDeposit.toString());
@@ -48,6 +50,8 @@ async function simpleBorrow(ctx, market, user, amount) {
     assert.ok(borrowPoolStateAfter.accrualBlock.cmp(borrowPoolStateBefore.accrualBlock) > 0);
     assert.ok(borrowPoolStateAfter.totalBorrows.cmp(borrowPoolStateBefore.totalBorrows.add(bnAmount)) >= 0);
     assert.ok(borrowPoolStateAfter.userBorrows.cmp(borrowPoolStateBefore.userBorrows.add(bnAmount)) >= 0);
+    assert.equal(cfscTotalSupplyAfter.sub(cfscTotalSupplyBefore).toString(),
+        borrowPoolStateAfter.totalBorrows.sub(borrowPoolStateBefore.totalBorrows).toString());
 }
 
 

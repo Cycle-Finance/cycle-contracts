@@ -6,12 +6,14 @@ async function simpleRepayBorrow(ctx, market, borrower, usedSCContract, amount) 
     let borrowPoolStateBefore = await context.borrowPoolState(ctx, borrower);
     let userBalanceStateBefore = await context.userBalanceState(ctx, market, borrower);
     let scBalanceBefore = await usedSCContract.balanceOf(borrower);
+    let cfscTotalSupplyBefore = await ctx.CFSC.totalSupply();
     await ctx.borrowPool.repayBorrow(usedSCContract.address, amount, {from: borrower});
     await ctx.comptroller.refreshMarketDeposit();
     let comptrollerStateAfter = await context.comptrollerState(ctx, market, borrower);
     let borrowPoolStateAfter = await context.borrowPoolState(ctx, borrower);
     let userBalanceStateAfter = await context.userBalanceState(ctx, market, borrower);
     let scBalanceAfter = await usedSCContract.balanceOf(borrower);
+    let cfscTotalSupplyAfter = await ctx.CFSC.totalSupply();
     assert.ok(comptrollerStateAfter.refreshedBlock.cmp(comptrollerStateBefore.refreshedBlock) === 1);
     assert.equal(comptrollerStateBefore.totalDeposit.toString(),
         comptrollerStateAfter.totalDeposit.toString());
@@ -57,6 +59,11 @@ async function simpleRepayBorrow(ctx, market, borrower, usedSCContract, amount) 
     if (bnAmount.toString() === maxUint256.toString()) {
         if (usedSCContract.address === ctx.CFSC.address) {
             assert.ok(userBalanceStateAfter.cfscBalance.cmp(userBalanceStateBefore.cfscBalance.sub(bnAmount)) >= 0);
+            if (borrowPoolStateBefore.userBorrows.cmpn(0) > 0) {
+                assert.ok(cfscTotalSupplyAfter.cmp(cfscTotalSupplyBefore) < 0);
+            } else {
+                assert.ok(cfscTotalSupplyAfter.cmp(cfscTotalSupplyBefore) === 0);
+            }
         } else {
             assert.ok(scBalanceBefore.cmp(scBalanceAfter) >= 0);
             assert.ok(userBalanceStateAfter.cfscBalance.cmp(userBalanceStateBefore.cfscBalance) >= 0);
@@ -66,6 +73,11 @@ async function simpleRepayBorrow(ctx, market, borrower, usedSCContract, amount) 
     } else {
         if (usedSCContract.address === ctx.CFSC.address) {
             assert.ok(userBalanceStateAfter.cfscBalance.cmp(userBalanceStateBefore.cfscBalance.sub(bnAmount)) >= 0);
+            if (borrowPoolStateBefore.userBorrows.cmpn(0) > 0) {
+                assert.equal(cfscTotalSupplyBefore.sub(cfscTotalSupplyAfter).toString(), amount.toString());
+            } else {
+                assert.ok(cfscTotalSupplyAfter.cmp(cfscTotalSupplyBefore) === 0);
+            }
         } else {
             assert.ok(scBalanceBefore.cmp(scBalanceAfter) >= 0);
             assert.ok(userBalanceStateAfter.cfscBalance.cmp(userBalanceStateBefore.cfscBalance) >= 0);

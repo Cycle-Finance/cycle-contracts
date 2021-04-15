@@ -311,7 +311,6 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
 
     function getHypotheticalSystemLiquidity(address dToken, uint redeemTokens, uint borrowAmount)
     internal view returns (MathError, uint, uint){
-        Exp memory systemFactor = Exp(maxSystemUtilizationRate);
         Exp memory deposit = Exp(totalDeposit);
         uint totalBorrows = borrowPool._totalBorrows();
         // borrows value = borrowBalance * CFSC price / expScale
@@ -322,11 +321,12 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
         if (err != MathError.NO_ERROR) {
             return (err, 0, 0);
         }
+        Exp memory systemFactor = Exp(maxSystemUtilizationRate);
         (MathError err1, Exp memory borrowLimit) = mulExp(systemFactor, remainLiquidity);
         if (err1 != MathError.NO_ERROR) {
             return (err1, 0, 0);
         }
-        if (lessThanExp(hypotheticalBorrows, borrowLimit)) {
+        if (lessThanOrEqualExp(hypotheticalBorrows, borrowLimit)) {
             return (MathError.NO_ERROR, borrowLimit.mantissa - hypotheticalBorrows.mantissa, 0);
         } else {
             return (MathError.NO_ERROR, 0, hypotheticalBorrows.mantissa - borrowLimit.mantissa);
@@ -364,7 +364,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
         uint totalBorrows = borrowPool.getBorrows(account) + borrowAmount;
         // hypotheticalBorrows = totalBorrows * CFSCPrice / expScale
         Exp memory hypotheticalBorrows = Exp(totalBorrows);
-        if (lessThanExp(hypotheticalBorrows, borrowLimit)) {
+        if (lessThanOrEqualExp(hypotheticalBorrows, borrowLimit)) {
             return (MathError.NO_ERROR, borrowLimit.mantissa - hypotheticalBorrows.mantissa, 0);
         } else {
             return (MathError.NO_ERROR, 0, hypotheticalBorrows.mantissa - borrowLimit.mantissa);

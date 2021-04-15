@@ -171,6 +171,49 @@ accounts[1] withdraw middle amount at other assets
 
 ## withdraw-6
 
+when public borrower borrow some money, user cannot withdraw while system liquidity is insufficient
+
+### beforeAll
+
+someone(not public borrower) deposit enough liquidity.
+
+the deposit value is 1*1902 + 1*51234 + 1000*1 + 1000*1.012 = 55148, system borrow limit is 55148*0.9=49633.2, system
+enable public borrow threshold is 55148*0.6 = 33088.8, user borrow limit is 1*1902*0.75 + 1*51234*0.75 + 1000*1*0.75 +
+1000*1.012*0.75 = 41361.
+
+- [SimpleDeposit](./test-function.md#SimpleDeposit)(dEther, accounts[0], 1 ETH)
+- [SimpleDeposit](./test-function.md#SimpleDeposit)(dWBTC, accounts[0], 1 dWBTC)
+- [SimpleDeposit](./test-function.md#SimpleDeposit)(dUSDC, accounts[0], 1000 USDC)
+- [SimpleDeposit](./test-function.md#SimpleDeposit)(dUSDT, accounts[0], 1000 USDT)
+- [SetPublicBorrower](./test-function.md#SetPublicBorrower)(accounts[1])
+- [SimpleBorrow](./test-function.md#SimpleBorrow)(dEther, accounts[1], 49600 CFSC)
+
+the remain liquidity is 49633.2 - 49600 = 33.2, about 33.2/0.75/1=44.2667 USDC, or 33.2/0.75/1.012=43.7418 USDT
+
+### withdraw-6-1
+
+user could withdraw 20 USDC
+
+- [SimpleWithdraw](./test-function.md#SimpleWithdraw)(dUSDC, accounts[0], 20 USDC)
+
+### withdraw-6-2
+
+user couldn't withdraw 30 USDC
+
+- [FailWithdraw](./test-function.md#FailWithdraw)(dUSDC, accounts[0], 30 USDC, "insufficient system liquidity")
+
+### withdraw-6-3
+
+could withdraw all asset after system borrow has been repaid.
+
+- [SimpleRepayBorrow](./test-function.md#SimpleRepayBorrow)(dUSDC, accounts[1], CFSCContract, -1)
+- [SimpleWithdraw](./test-function.md#SimpleWithdraw)(dEther, accounts[0], 1 ETH)
+- [SimpleWithdraw](./test-function.md#SimpleWithdraw)(dWBTC, accounts[0], 1 dWBTC)
+- [SimpleWithdraw](./test-function.md#SimpleWithdraw)(dUSDC, accounts[0], 980 USDC)
+- [SimpleWithdraw](./test-function.md#SimpleWithdraw)(dUSDT, accounts[0], 1000 USDT)
+
+## withdraw-7
+
 if account withdraw 0, in any case, the withdrawal will be successful
 
 So these cases just need to change the amount param of failed cases to zero and operate those case again.

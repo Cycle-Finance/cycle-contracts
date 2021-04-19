@@ -60,7 +60,7 @@ contract('withdraw test case 1', async (accounts) => {
         let amount = web3.utils.toWei('10');
         await deposit.simpleDeposit(ctx, ctx.dEther, accounts[0], amount);
     });
-    let reason = "calculate system liquidity failed";
+    let reason = "calculate account liquidity failed";
     it('withdraw-3-1', async () => {
         let amount = web3.utils.toWei('100');
         await withdraw.failWithdraw(ctx, ctx.dEther, accounts[0], amount, reason);

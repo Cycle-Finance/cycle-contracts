@@ -75,10 +75,13 @@ contract('withdraw test case 6', async (accounts) => {
     it('withdraw-6-1: user could withdraw 20 USDC', async () => {
         await withdraw.simpleWithdraw(ctx, ctx.dUSDC, accounts[0], 20 * (10 ** 6))
     });
-    it('withdraw-5-2', async () => {
+    it('withdraw-6-2', async () => {
         await withdraw.failWithdraw(ctx, ctx.dUSDC, accounts[0], 30 * (10 ** 6), "insufficient system liquidity");
     });
-    it('withdraw-5-3', async () => {
+    it('withdraw-6-3', async () => {
+        await withdraw.failWithdraw(ctx, ctx.dUSDC, accounts[0], 55149 * (10 ** 6), "calculate system liquidity failed");
+    });
+    it('withdraw-6-4', async () => {
         // exchange CFSC firstly
         const maxUint256 = web3.utils.toBN(2).pow(web3.utils.toBN(256)).sub(web3.utils.toBN(1));
         await ctx.USDC.approve(ctx.exchangePool.address, maxUint256, {from: accounts[1]});

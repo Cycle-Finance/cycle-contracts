@@ -7,7 +7,8 @@ async function simpleTransfer(ctx, market, from, to, amount) {
     let toComptrollerStateBefore = await context.comptrollerState(ctx, market, to);
     let toBorrowPoolStateBefore = await context.borrowPoolState(ctx, to);
     let toBalanceStateBefore = await context.userBalanceState(ctx, market, to);
-    await market.transfer(to, amount, {from: from});
+    let tx = await market.transfer(to, amount, {from: from});
+    context.ensureTxSuccess(tx);
     await ctx.comptroller.refreshMarketDeposit();
     let fromComptrollerStateAfter = await context.comptrollerState(ctx, market, from);
     let fromBorrowPoolStateAfter = await context.borrowPoolState(ctx, from);
@@ -90,7 +91,7 @@ async function failTransfer(market, from, to, amount, reason) {
             if (log.args[0] === reason) {
                 reasonMatched = true;
             }
-            console.log('Fail: %s', log.args);
+            console.log('Fail: %s', log.args[0]);
         }
     }
     assert.ok(reasonMatched);

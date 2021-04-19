@@ -34,37 +34,37 @@ withdraw from dUSDT
 
 ## withdraw-2
 
-withdraw when there are no deposit at any market, the withdrawal should fail, the reason is "calculate system liquidity
+withdraw when there are no deposit at any market, the withdrawal should fail, the reason is "calculate account liquidity
 failed".
 
 ### withdraw-2-1
 
 withdraw from dEther
 
-- [FailWithdraw](./test-function.md#FailWithdraw)(dEther, accounts[0], 10 ETH, "calculate system liquidity failed")
+- [FailWithdraw](./test-function.md#FailWithdraw)(dEther, accounts[0], 10 ETH, "calculate account liquidity failed")
 
 ### withdraw-2-2
 
 withdraw from dWBTC
 
-- [FailWithdraw](./test-function.md#FailWithdraw)(dWBTC, accounts[0], 10 WBTC, "calculate system liquidity failed")
+- [FailWithdraw](./test-function.md#FailWithdraw)(dWBTC, accounts[0], 10 WBTC, "calculate account liquidity failed")
 
 ### withdraw-2-3
 
 withdraw from dUSDC
 
-- [FailWithdraw](./test-function.md#FailWithdraw)(dUSDC, accounts[0], 10 USDT, "calculate system liquidity failed")
+- [FailWithdraw](./test-function.md#FailWithdraw)(dUSDC, accounts[0], 10 USDT, "calculate account liquidity failed")
 
 ### withdraw-2-4
 
 withdraw from dUSDT
 
-- [FailWithdraw](./test-function.md#FailWithdraw)(dUSDT, accounts[0], 10 USDC, "calculate system liquidity failed")
+- [FailWithdraw](./test-function.md#FailWithdraw)(dUSDT, accounts[0], 10 USDC, "calculate account liquidity failed")
 
 ## withdraw-3
 
 withdraw when system liquidity is insufficient, but more than 0, and the borrows is 0, the withdrawal should fail, the
-reason should be "calculate system liquidity failed".
+reason should be "calculate account liquidity failed".
 
 so, let user deposit some value firstly:
 
@@ -78,25 +78,25 @@ deposit 10 ETH to system, the value should be $19020
 
 withdraw 100 ETH
 
-- [FailWithdraw](./test-function.md#FailWithdraw)(dEther, accounts[0], 100 ETH, "calculate system liquidity failed")
+- [FailWithdraw](./test-function.md#FailWithdraw)(dEther, accounts[0], 100 ETH, "calculate account liquidity failed")
 
 ### withdraw-3-2
 
 withdraw 100 WBTC
 
-- [FailWithdraw](./test-function.md#FailWithdraw)(dWBTC, accounts[0], 100 WBTC, "calculate system liquidity failed")
+- [FailWithdraw](./test-function.md#FailWithdraw)(dWBTC, accounts[0], 100 WBTC, "calculate account liquidity failed")
 
 ### withdraw-3-3
 
 withdraw 20000 USDC
 
-- [FailWithdraw](./test-function.md#FailWithdraw)(dUSDC, accounts[0], 20000 USDC, "calculate system liquidity failed")
+- [FailWithdraw](./test-function.md#FailWithdraw)(dUSDC, accounts[0], 20000 USDC, "calculate account liquidity failed")
 
 ### withdraw-3-3
 
 withdraw 20000 USDT
 
-- [FailWithdraw](./test-function.md#FailWithdraw)(dUSDT, accounts[0], 20000 USDT, "calculate system liquidity failed")
+- [FailWithdraw](./test-function.md#FailWithdraw)(dUSDT, accounts[0], 20000 USDT, "calculate account liquidity failed")
 
 ## withdraw-4
 
@@ -113,13 +113,13 @@ deposit 10 ETH and then borrow 10000 CFSC, so the remained liquidity  ~= 9000*0.
 
 withdraw 100 ETH (more user deposit, should fail)
 
-- [FailWithdraw](./test-function.md#FailWithdraw)(dEther, accounts[0], 100 ETH, "calculate system liquidity failed")
+- [FailWithdraw](./test-function.md#FailWithdraw)(dEther, accounts[0], 100 ETH, "calculate account liquidity failed")
 
 ### withdraw-4-2
 
 withdraw 10 ETH (equals user deposit, should fail)
 
-- [FailWithdraw](./test-function.md#FailWithdraw)(dEther, accounts[0], 10 ETH, "insufficient system liquidity")
+- [FailWithdraw](./test-function.md#FailWithdraw)(dEther, accounts[0], 10 ETH, "insufficient liquidity")
 
 ### withdraw-4-3
 
@@ -155,13 +155,13 @@ deposit 10 ETH and then borrow 10000 CFSC, so the remained liquidity  ~= 9000*0.
 
 accounts[1] withdraw large amount
 
-- [FailWithdraw](./test-function.md#FailWithdraw)(dEther, accounts[1], 100 ETH, "calculate system liquidity failed")
+- [FailWithdraw](./test-function.md#FailWithdraw)(dEther, accounts[1], 100 ETH, "calculate account liquidity failed")
 
 ### withdraw-5-2
 
 accounts[1] withdraw middle amount
 
-- [FailWithdraw](./test-function.md#FailWithdraw)(dEther, accounts[1], 10 ETH, "insufficient system liquidity")
+- [FailWithdraw](./test-function.md#FailWithdraw)(dEther, accounts[1], 10 ETH, "calculate account liquidity failed")
 
 ### withdraw-5-3
 
@@ -203,6 +203,12 @@ user couldn't withdraw 30 USDC
 - [FailWithdraw](./test-function.md#FailWithdraw)(dUSDC, accounts[0], 30 USDC, "insufficient system liquidity")
 
 ### withdraw-6-3
+
+user couldn't withdraw > 55148 CFSC
+
+- [FailWithdraw](./test-function.md#FailWithdraw)(dUSDC, accounts[0], 55149 USDC, "calculate system liquidity failed")
+
+### withdraw-6-4
 
 could withdraw all asset after system borrow has been repaid.
 

@@ -64,12 +64,12 @@ contract('withdraw test case 4', async (accounts) => {
     });
     it('withdraw-4-1', async () => {
         let amount = web3.utils.toWei('100');
-        await withdraw.failWithdraw(ctx, ctx.dEther, accounts[0], amount, "calculate system liquidity failed");
+        await withdraw.failWithdraw(ctx, ctx.dEther, accounts[0], amount, "calculate account liquidity failed");
         await withdraw.simpleWithdraw(ctx, ctx.dEther, accounts[0], 0)
     });
     it('withdraw-4-2', async () => {
         let amount = web3.utils.toWei('10');
-        await withdraw.failWithdraw(ctx, ctx.dEther, accounts[0], amount, "insufficient system liquidity");
+        await withdraw.failWithdraw(ctx, ctx.dEther, accounts[0], amount, "insufficient liquidity");
         await withdraw.simpleWithdraw(ctx, ctx.dEther, accounts[0], 0)
     });
     it('withdraw-4-3', async () => {

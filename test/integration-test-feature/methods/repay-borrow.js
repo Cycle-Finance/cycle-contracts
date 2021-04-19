@@ -7,7 +7,8 @@ async function simpleRepayBorrow(ctx, market, borrower, usedSCContract, amount) 
     let userBalanceStateBefore = await context.userBalanceState(ctx, market, borrower);
     let scBalanceBefore = await usedSCContract.balanceOf(borrower);
     let cfscTotalSupplyBefore = await ctx.CFSC.totalSupply();
-    await ctx.borrowPool.repayBorrow(usedSCContract.address, amount, {from: borrower});
+    let tx = await ctx.borrowPool.repayBorrow(usedSCContract.address, amount, {from: borrower});
+    context.ensureTxSuccess(tx);
     await ctx.comptroller.refreshMarketDeposit();
     let comptrollerStateAfter = await context.comptrollerState(ctx, market, borrower);
     let borrowPoolStateAfter = await context.borrowPoolState(ctx, borrower);
@@ -73,8 +74,8 @@ async function simpleRepayBorrow(ctx, market, borrower, usedSCContract, amount) 
     } else {
         if (usedSCContract.address === ctx.CFSC.address) {
             assert.ok(userBalanceStateAfter.cfscBalance.cmp(userBalanceStateBefore.cfscBalance.sub(bnAmount)) >= 0);
-            if (borrowPoolStateBefore.userBorrows.cmpn(0) > 0) {
-                assert.equal(cfscTotalSupplyBefore.sub(cfscTotalSupplyAfter).toString(), amount.toString());
+            if (borrowPoolStateBefore.totalBorrows.cmpn(0) > 0) {
+                assert.ok(cfscTotalSupplyAfter.add(bnAmount).sub(cfscTotalSupplyBefore).cmpn(0) > 0);
             } else {
                 assert.ok(cfscTotalSupplyAfter.cmp(cfscTotalSupplyBefore) === 0);
             }

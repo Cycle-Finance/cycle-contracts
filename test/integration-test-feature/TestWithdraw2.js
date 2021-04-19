@@ -57,7 +57,7 @@ contract('withdraw test case 2', async (accounts) => {
             IERC20: IERC20,
         };
     });
-    let reason = "calculate system liquidity failed";
+    let reason = "calculate account liquidity failed";
     it('withdraw-2-1', async () => {
         let amount = web3.utils.toWei('10');
         await withdraw.failWithdraw(ctx, ctx.dEther, accounts[0], amount, reason);

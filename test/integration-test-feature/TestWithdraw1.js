@@ -19,7 +19,6 @@ const WBTC = artifacts.require("TestWBTC");
 
 const IERC20 = artifacts.require("IERC20");
 
-const context = require('./methods/context');
 const withdraw = require('./methods/withdraw');
 const deposit = require('./methods/deposit');
 

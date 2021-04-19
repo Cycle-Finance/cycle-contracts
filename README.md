@@ -4,4 +4,6 @@ solidity implementation of cycle finance protocol
 
 ## TODO List
 
-- rerun all test case
+- integrate with ChainLink contract, not [TestOracle](./contracts/test/TestOracle.sol)
+- clear code
+- optimize gas consumed

@@ -42,7 +42,7 @@ module.exports = async function (depolyer) {
     await depolyer.deploy(ComptrollerProxy, Comptroller.address, emptyData);
     await depolyer.deploy(BorrowsProxy, Borrows.address, emptyData);
     let dEtherProxy = await dTokenProxy.new(
-        "Cycle Finance WBTC Deposit Token", "dEther", zeroAddress, DEther.address, emptyData);
+        "Cycle Finance ETH Deposit Token", "dEther", zeroAddress, DEther.address, emptyData);
     let dWBTCProxy = await dTokenProxy.new(
         "Cycle Finance WBTC Deposit Token", "dWBTC", WBTC.address, DERC20.address, emptyData);
     let dUSDCProxy = await dTokenProxy.new(

@@ -7,7 +7,8 @@ async function simpleDeposit(ctx, market, user, amount) {
     let borrowPoolStateBefore = await context.borrowPoolState(ctx, user);
     let userBalanceStateBefore = await context.userBalanceState(ctx, market, user);
     // deposit
-    await deposit(ctx, market, user, amount);
+    let tx = await deposit(ctx, market, user, amount);
+    context.ensureTxSuccess(tx);
     await ctx.comptroller.refreshMarketDeposit();
     let comptrollerStateAfter = await context.comptrollerState(ctx, market, user);
     let borrowPoolStateAfter = await context.borrowPoolState(ctx, user);
@@ -69,7 +70,7 @@ async function failDeposit(ctx, market, user, amount, reason) {
             if (log.args[0] === reason) {
                 reasonMatched = true;
             }
-            console.log('Fail: %s', log.args);
+            console.log('Fail: %s', log.args[0]);
         }
     }
     assert.ok(reasonMatched);
@@ -78,7 +79,7 @@ async function failDeposit(ctx, market, user, amount, reason) {
 async function deposit(ctx, market, user, amount) {
     let underlying = await market.underlyingAsset();
     if (underlying === zeroAddress) {
-        await market.mint(amount, {from: user, value: amount});
+        return await market.mint(amount, {from: user, value: amount});
     } else {
         let iERC20 = await ctx.IERC20.at(underlying);
         await iERC20.approve(market.address, amount, {from: user});

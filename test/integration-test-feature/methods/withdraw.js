@@ -5,7 +5,8 @@ async function simpleWithdraw(ctx, market, user, amount) {
     let borrowPoolStateBefore = await context.borrowPoolState(ctx, user);
     let userBalanceStateBefore = await context.userBalanceState(ctx, market, user);
     // deposit
-    await market.redeem(amount, {from: user});
+    let tx = await market.redeem(amount, {from: user});
+    context.ensureTxSuccess(tx);
     await ctx.comptroller.refreshMarketDeposit();
     let comptrollerStateAfter = await context.comptrollerState(ctx, market, user);
     let borrowPoolStateAfter = await context.borrowPoolState(ctx, user);
@@ -85,7 +86,7 @@ async function failWithdraw(ctx, market, user, amount, reason) {
             if (log.args[0] === reason) {
                 reasonMatched = true;
             }
-            console.log('Fail: %s', log.args);
+            console.log('Fail: %s', log.args[0]);
         }
     }
     assert.ok(reasonMatched);

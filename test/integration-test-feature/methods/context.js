@@ -134,4 +134,16 @@ async function ctxState(ctx, market, user) {
     };
 }
 
-module.exports = {comptrollerState, borrowPoolState, userBalanceState, ctxState};
+function ensureTxSuccess(tx) {
+    let failed = false;
+    for (let i = 0; i < tx.logs.length; i++) {
+        let log = tx.logs[i];
+        if (log.event === "Fail") {
+            console.log('fail: %s', log.args[0]);
+            failed = true;
+        }
+    }
+    assert.ok(!failed);
+}
+
+module.exports = {comptrollerState, borrowPoolState, userBalanceState, ctxState, ensureTxSuccess};

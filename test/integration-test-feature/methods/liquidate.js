@@ -7,7 +7,9 @@ async function simpleLiquidateBorrow(ctx, market, liquidator, borrower, usedSCCo
     let borrowerBalanceStateBefore = await context.userBalanceState(ctx, market, borrower);
     let liquidatorBalanceStateBefore = await context.userBalanceState(ctx, market, liquidator);
     let balanceBefore = await usedSCContract.balanceOf(liquidator);
-    await ctx.borrowPool.liquidateBorrow(usedSCContract.address, market.address, borrower, repayAmount, {from: liquidator});
+    let tx = await ctx.borrowPool.liquidateBorrow(usedSCContract.address, market.address, borrower, repayAmount,
+        {from: liquidator});
+    context.ensureTxSuccess(tx);
     await ctx.comptroller.refreshMarketDeposit();
     let borrowerCompStateAfter = await context.comptrollerState(ctx, market, borrower);
     let liquidatorCompStateAfter = await context.comptrollerState(ctx, market, liquidator);
@@ -93,7 +95,7 @@ async function failLiquidateBorrow(ctx, market, liquidator, borrower, usedSCCont
             if (log.args[0] === reason) {
                 reasonMatched = true;
             }
-            console.log('Fail: %s', log.args);
+            console.log('Fail: %s', log.args[0]);
         }
     }
     assert.ok(reasonMatched);
@@ -108,7 +110,7 @@ async function failSeize(market, liquidator, borrower, seizeAmount, reason) {
             if (log.args[0] === reason) {
                 reasonMatched = true;
             }
-            console.log('Fail: %s', log.args);
+            console.log('Fail: %s', log.args[0]);
         }
     }
     assert.ok(reasonMatched);

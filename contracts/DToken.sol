@@ -123,7 +123,8 @@ abstract contract DToken is DTokenStorage, Exponential {
         if (bytes(errMsg).length != 0) {
             return fail(errMsg);
         }
-        _transfer(borrower, liquidator, amount);
+        balanceOf[borrower] = sub_(balanceOf[borrower], amount);
+        balanceOf[liquidator] = add_(balanceOf[liquidator], amount);
         comptroller.seizeVerify(address(this), msg.sender, liquidator, borrower, amount);
         emit Transfer(borrower, liquidator, amount);
         return "";

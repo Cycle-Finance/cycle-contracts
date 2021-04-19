@@ -18,13 +18,13 @@ function assertStateChange(stateBefore, stateAfter, userKind, borrowAmount, para
     let localState = calculateLocalState(interestBlockDelta, borrowerCFGTBlockDelta, stateBefore.comp, stateBefore.bp,
         stateBefore.dToken, param);
     // check user index equals global index
-    if (stateAfter.comp.supplierInterestIndex.cmpn(0) > 0) {
+    if (stateAfter.comp.supplierInterestIndex.cmpn(0) > 0 && userKind !== KIND_BORROWER) {
         assert.equal(stateAfter.comp.marketInterestIndex.toString(), stateAfter.comp.supplierInterestIndex.toString());
     }
-    if (stateAfter.comp.supplierIndex.cmpn(0) > 0) {
+    if (stateAfter.comp.supplierIndex.cmpn(0) > 0 && userKind !== KIND_BORROWER) {
         assert.equal(stateAfter.comp.marketSupplyIndex.toString(), stateAfter.comp.supplierIndex.toString());
     }
-    if (stateAfter.comp.borrowerIndex.cmpn(0) > 0) {
+    if (stateAfter.comp.borrowerIndex.cmpn(0) > 0 && (userKind === KIND_BORROWER || userKind === KIND_LIQUIDATEE)) {
         assert.equal(stateAfter.comp.borrowIndex.toString(), stateAfter.comp.borrowerIndex.toString());
     }
     // check actual state and local state
@@ -35,27 +35,28 @@ function assertStateChange(stateBefore, stateAfter, userKind, borrowAmount, para
     // interestAccrued: borrowPool -> comptroller
     // interestDistribution: comptroller -> supplier
     let supplierCFSCDelta = stateAfter.cfscBalance.sub(stateBefore.cfscBalance.add(borrowAmount));
-    assert.equal(supplierCFSCDelta.toString(), localState.supplierInterest.toString());
+    if (userKind === KIND_SUPPLIER) {
+        assert.equal(supplierCFSCDelta.toString(), localState.supplierInterest.toString());
+    }
     let compCFSCDelta = stateAfter.compCfscBalance.sub(stateBefore.compCfscBalance);
     let cfscDelta = compCFSCDelta.add(supplierCFSCDelta);
     assert.equal(cfscDelta.toString(), localState.interestAccrued.interestDelta.toString());
     // check CFGT amount
     let cfgtDelta = stateAfter.cfgtBalance.sub(stateBefore.cfgtBalance).add(
         stateAfter.comp.accruedCFGT.sub(stateBefore.comp.accruedCFGT));
-    cfgtDelta = cfgtDelta.toString();
     switch (userKind) {
         case KIND_SUPPLIER:
-            assert.equal(cfgtDelta, localState.supplierCFGT.toString());
+            assert.ok(cfgtDelta.sub(localState.supplierCFGT).abs().cmpn(math.expScaleMismatchThreshold) < 0);
             break;
         case KIND_BORROWER:
-            assert.equal(cfgtDelta, localState.borrowerCFGT.toString());
+            assert.ok(cfgtDelta.sub(localState.borrowerCFGT).abs().cmpn(math.expScaleMismatchThreshold) < 0);
             break;
         case KIND_LIQUIDATOR:
-            assert.equal(cfgtDelta, localState.supplierCFGT.toString());
+            assert.ok(cfgtDelta.sub(localState.supplierCFGT).abs().cmpn(math.expScaleMismatchThreshold) < 0);
             break;
         case KIND_LIQUIDATEE:
             let totalCFGT = localState.borrowerCFGT.add(localState.supplierCFGT);
-            assert.equal(cfgtDelta, totalCFGT.toString());
+            assert.ok(cfgtDelta.sub(totalCFGT).abs().cmpn(math.expScaleMismatchThreshold) < 0);
             break;
         default:
             throw new Error('unsupported kind');
@@ -63,6 +64,7 @@ function assertStateChange(stateBefore, stateAfter, userKind, borrowAmount, para
 }
 
 // check user CFGT and CFSC distribution
+// KIND_LIQUIDATEE means that check supply and borrow CFGT distribution at same time
 function assertBalanceChange(stateBefore, stateAfter, userKind, borrowAmount) {
     let localState = {};
     localState.supplierInterest = localComp.marketSupplierDistributionInterestByIndex(
@@ -72,24 +74,25 @@ function assertBalanceChange(stateBefore, stateAfter, userKind, borrowAmount) {
     localState.borrowerCFGT = localComp.borrowerDistributionCFGTByIndex(
         stateAfter.comp.borrowIndex, stateBefore.comp.borrowerIndex, stateBefore.bp.accountBorrows, stateBefore.bp.borrowIndex);
     let supplierCFSCDelta = stateAfter.cfscBalance.sub(stateBefore.cfscBalance.add(borrowAmount));
-    assert.equal(supplierCFSCDelta.toString(), localState.supplierInterest.toString());
+    if (userKind !== KIND_BORROWER) {
+        assert.equal(supplierCFSCDelta.toString(), localState.supplierInterest.toString());
+    }
     // check CFGT amount
     let cfgtDelta = stateAfter.cfgtBalance.sub(stateBefore.cfgtBalance).add(
         stateAfter.comp.accruedCFGT.sub(stateBefore.comp.accruedCFGT));
-    cfgtDelta = cfgtDelta.toString();
     switch (userKind) {
         case KIND_SUPPLIER:
-            assert.equal(cfgtDelta, localState.supplierCFGT.toString());
+            assert.ok(cfgtDelta.sub(localState.supplierCFGT).abs().cmpn(math.expScaleMismatchThreshold) < 0);
             break;
         case KIND_BORROWER:
-            assert.equal(cfgtDelta, localState.borrowerCFGT.toString());
+            assert.ok(cfgtDelta.sub(localState.borrowerCFGT).abs().cmpn(math.expScaleMismatchThreshold) < 0);
             break;
         case KIND_LIQUIDATOR:
-            assert.equal(cfgtDelta, localState.supplierCFGT.toString());
+            assert.ok(cfgtDelta.sub(localState.supplierCFGT).abs().cmpn(math.expScaleMismatchThreshold) < 0);
             break;
         case KIND_LIQUIDATEE:
             let totalCFGT = localState.borrowerCFGT.add(localState.supplierCFGT);
-            assert.equal(cfgtDelta, totalCFGT.toString());
+            assert.ok(cfgtDelta.sub(totalCFGT).abs().cmpn(math.expScaleMismatchThreshold) < 0);
             break;
         default:
             throw new Error('unsupported kind');
@@ -110,8 +113,8 @@ function calculateLocalState(interestBlockDelta, borrowerCFGTBlockDelta, compSta
         compStateBefore.totalDeposit, compStateBefore.marketDeposit, marketStateBefore.totalSupply, param.supplySpeed,
         interestBlockDelta, interestAccrued.interestDelta);
     // update borrowIndex
-    let borrowIndex = localComp.borrowIndex(compStateBefore.borrowIndex, borrowPoolStateBefore.totalBorrows,
-        borrowPoolStateBefore.borrowIndex, param.borrowSpeed, borrowerCFGTBlockDelta);
+    let borrowIndex = localComp.borrowIndex(compStateBefore.borrowIndex, interestAccrued.totalBorrows,
+        interestAccrued.borrowIndex, param.borrowSpeed, borrowerCFGTBlockDelta);
     // get CFGT distribution and interest CFSC distribution
     let marketSupplySpeed = param.supplySpeed;
     let marketInterestAccrued = interestAccrued.interestDelta;

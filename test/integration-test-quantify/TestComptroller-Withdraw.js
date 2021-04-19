@@ -130,8 +130,7 @@ contract('test comptroller with withdraw', async (accounts) => {
         // record CFGT distribution
         let singleDelta2 = stateAfter.cfgtBalance.sub(stateBefore.cfgtBalance)
             .div(stateAfter.comp.refreshedBlock.sub(stateBefore.comp.refreshedBlock));
-        // because eth market deposit value decreased
-        assert.ok(singleDelta1.cmp(singleDelta2) > 0);
+        assert.ok(singleDelta1.cmpn(0) > 0);
         assert.ok(singleDelta2.cmpn(0) > 0);
         totalDeposit = await context.totalMarketDepositValue(ctx);
         assert.equal(totalDeposit.toString(), stateAfter.comp.totalDeposit.toString());
@@ -139,7 +138,7 @@ contract('test comptroller with withdraw', async (accounts) => {
         let weight2 = math.div_(stateBefore.dToken.userDepositValue, stateBefore.comp.totalDeposit);
         // mismatch should be less than math.expScaleMismatchThreshold/math.expScale CFGT
         assert.ok(math.mulScalarAndTruncate(weight1, singleDelta2)
-            .sub(math.mulScalarAndTruncate(weight2, singleDelta1))
+            .sub(math.mulScalarAndTruncate(weight2, singleDelta1)).abs()
             .cmpn(math.expScaleMismatchThreshold) <= 0);
     });
 });

@@ -55,6 +55,7 @@ contract ComptrollerStorage is Ownable {
     // asset collateral factor, is exponential
     mapping(address => uint) public collateralFactor;
     /// @notice totalDeposit * systemCollateralFactor >= totalBorrows
+    /// @notice maxSystemUtilizationRate is systemCollateralFactor
     uint public maxSystemUtilizationRate = 90 * (10 ** 16);
     /// @notice only when the utilization rate is lower than this value, public loans can be allowed
     uint public publicBorrowThreshold = 60 * (10 ** 16);

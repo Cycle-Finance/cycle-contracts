@@ -209,10 +209,10 @@ contract('test comptroller with deposit', async (accounts) => {
         // truncate double scale: CFGT decimals and price calculate expScale
         // 1BTC : 2ETH
         assert.ok(ethCFGTGap.mul(param.wbtcPrice).mul(web3.utils.toBN(10 ** 8)).div(math.doubleScale)
-            .sub(wbtcCFGTGap.mul(param.ethPrice).muln(2).mul(math.expScale).div(math.doubleScale))
+            .sub(wbtcCFGTGap.mul(param.ethPrice).muln(2).mul(math.expScale).div(math.doubleScale)).abs()
             .cmpn(math.expScaleMismatchThreshold) <= 0);
         assert.ok(usdtCFGTGap.mul(param.usdcPrice).mul(web3.utils.toBN(10 ** 6)).div(math.doubleScale)
-            .sub(usdcCFGTGap.mul(param.usdtPrice).mul(web3.utils.toBN(10 ** 6)).div(math.doubleScale))
+            .sub(usdcCFGTGap.mul(param.usdtPrice).mul(web3.utils.toBN(10 ** 6)).div(math.doubleScale)).abs()
             .cmpn(math.expScaleMismatchThreshold) <= 0);
     });
     it('accounts[0] profit at same deposit value should be same', async () => {
@@ -288,7 +288,7 @@ contract('test comptroller with deposit', async (accounts) => {
         let gap0 = cfgtBalance0After.sub(cfgtBalance0Before);
         let gap1 = cfgtBalance1After.sub(cfgtBalance1Before);
         assert.equal(gap0.toString(), gap1.toString());
-        assert.ok(gap0.sub(blockAfter.sub(blockBefore).mul(param.supplySpeed).divn(2))
+        assert.ok(gap0.sub(blockAfter.sub(blockBefore).mul(param.supplySpeed).divn(2)).abs()
             .cmpn(math.expScaleMismatchThreshold) <= 0);
     });
     it('profit at different deposit value of account should be different', async () => {
@@ -308,7 +308,7 @@ contract('test comptroller with deposit', async (accounts) => {
         // exact check
         let value0 = await context.userTotalDepositValue(ctx, accounts[0]);
         let value1 = await context.userTotalDepositValue(ctx, accounts[1]);
-        assert.ok(math.mulScalarAndTruncate(value1, gap0).sub(math.mulScalarAndTruncate(value0, gap1))
+        assert.ok(math.mulScalarAndTruncate(value1, gap0).sub(math.mulScalarAndTruncate(value0, gap1)).abs()
             .cmpn(math.expScaleMismatchThreshold) <= 0);
     });
     it('register new market', async () => {

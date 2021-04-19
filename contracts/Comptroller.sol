@@ -128,12 +128,14 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
         refreshMarketDeposit();
         distributeInterest(dToken, redeemer);
         distributeSupplierCFGT(dToken, redeemer);
-        (MathError errS, , uint systemShortfall) = getHypotheticalSystemLiquidity(dToken, redeemTokens, 0);
-        if (errS != MathError.NO_ERROR) {
-            return "calculate system liquidity failed";
-        }
-        if (systemShortfall > 0) {
-            return "insufficient system liquidity";
+        if (borrowPool.getBorrows(publicBorrower) > 0) {
+            (MathError errS, , uint systemShortfall) = getHypotheticalSystemLiquidity(dToken, redeemTokens, 0);
+            if (errS != MathError.NO_ERROR) {
+                return "calculate system liquidity failed";
+            }
+            if (systemShortfall > 0) {
+                return "insufficient system liquidity";
+            }
         }
         (MathError err, , uint shortfall) = getHypotheticalAccountLiquidity(redeemer, dToken, redeemTokens, 0);
         if (err != MathError.NO_ERROR) {
@@ -402,7 +404,9 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
         Double memory deltaIndex = sub_(marketState, userState);
         uint userBalance = IERC20(market).balanceOf(user);
         uint userDelta = mul_(userBalance, deltaIndex);
-        CFSC.transfer(user, userDelta);
+        if (userDelta > 0) {
+            CFSC.transfer(user, userDelta);
+        }
         emit DistributeInterest(market, user, userDelta, marketState.mantissa);
     }
 
@@ -418,8 +422,10 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
         uint userBalance = IERC20(market).balanceOf(user);
         uint userDelta = mul_(userBalance, deltaIndex);
         userAccrued[user] = add_(userAccrued[user], userDelta);
-        if (transferCFGT(user, userAccrued[user])) {
-            userAccrued[user] = 0;
+        if (userAccrued[user] > 0) {
+            if (transferCFGT(user, userAccrued[user])) {
+                userAccrued[user] = 0;
+            }
         }
         emit DistributeSupplierCFGT(market, user, userDelta, marketState.mantissa);
     }
@@ -436,8 +442,10 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, Exponential {
         uint userBorrows = div_(borrowPool.getBorrows(user), borrowPoolIndex);
         uint userDelta = mul_(userBorrows, deltaIndex);
         userAccrued[user] = add_(userAccrued[user], userDelta);
-        if (transferCFGT(user, userAccrued[user])) {
-            userAccrued[user] = 0;
+        if (userAccrued[user] > 0) {
+            if (transferCFGT(user, userAccrued[user])) {
+                userAccrued[user] = 0;
+            }
         }
         emit DistributeBorrowerCFGT(user, userDelta, globalState.mantissa);
     }

@@ -1,3 +1,5 @@
+const math = require('./math');
+
 async function makeBlock(blockNum, accounts) {
     for (let i = 0; i < blockNum; i++) {
         await web3.eth.sendTransaction({to: accounts[1], value: 1, from: accounts[0]});
@@ -85,8 +87,8 @@ async function getState(ctx, market, user) {
         cfscBalance: cfscBalance,
         compCfscBalance: compCfscBalance,
         bpCfscBalance: bpCfscBalance,
-        sysLiquidity: [sysLiquidity[0], sysLiquidity[1]],
-        accountLiquidity: [accountLiquidity[0], accountLiquidity[1]],
+        sysLiquidity: [sysLiquidity[1], sysLiquidity[2]],
+        accountLiquidity: [accountLiquidity[1], accountLiquidity[2]],
     };
 }
 
@@ -98,6 +100,22 @@ async function userTotalDepositValue(ctx, user) {
     return ethValue.add(wbtcValue).add(usdcValue).add(usdtValue);
 }
 
+async function userBorrowLimit(ctx, user) {
+    let ethValue = await ctx.dEther.userDepositValue(user);
+    let wbtcValue = await ctx.dWBTC.userDepositValue(user);
+    let usdcValue = await ctx.dUSDC.userDepositValue(user);
+    let usdtValue = await ctx.dUSDT.userDepositValue(user);
+    let ethCollateralFactor = await ctx.comptroller.collateralFactor(ctx.dEther.address);
+    let wbtcCollateralFactor = await ctx.comptroller.collateralFactor(ctx.dWBTC.address);
+    let usdcCollateralFactor = await ctx.comptroller.collateralFactor(ctx.dUSDC.address);
+    let usdtCollateralFactor = await ctx.comptroller.collateralFactor(ctx.dUSDT.address);
+    let borrowLimit = math.mul_(ethValue, ethCollateralFactor);
+    borrowLimit = borrowLimit.add(math.mul_(wbtcValue, wbtcCollateralFactor));
+    borrowLimit = borrowLimit.add(math.mul_(usdcValue, usdcCollateralFactor));
+    borrowLimit = borrowLimit.add(math.mul_(usdtValue, usdtCollateralFactor));
+    return borrowLimit;
+}
+
 async function totalMarketDepositValue(ctx) {
     let ethValue = await ctx.dEther.depositValue();
     let wbtcValue = await ctx.dWBTC.depositValue();
@@ -106,4 +124,12 @@ async function totalMarketDepositValue(ctx) {
     return ethValue.add(wbtcValue).add(usdcValue).add(usdtValue);
 }
 
-module.exports = {makeBlock, borrowPoolState, marketState, getState, userTotalDepositValue, totalMarketDepositValue};
+module.exports = {
+    makeBlock,
+    borrowPoolState,
+    marketState,
+    getState,
+    userTotalDepositValue,
+    totalMarketDepositValue,
+    userBorrowLimit
+};

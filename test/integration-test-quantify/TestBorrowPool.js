@@ -285,7 +285,7 @@ async function assertBorrowPoolStateChange(interestRateModel, stateBefore, state
         let gap = localStateTotalBorrows.cmp(stateAfter.borrowPoolState.totalBorrows) > 0 ?
             localStateTotalBorrows.sub(stateAfter.borrowPoolState.totalBorrows) :
             stateAfter.borrowPoolState.totalBorrows.sub(localStateTotalBorrows);
-        assert.ok(gap.cmpn(math.expScaleMismatchThreshold) <= 0);
+        assert.ok(gap.abs().cmpn(math.expScaleMismatchThreshold) <= 0);
     }
     assert.equal(localState.borrowIndex.toString(), stateAfter.borrowPoolState.borrowIndex.toString());
     // if comptroller distribute interest to supplier, the assert will fail
@@ -303,7 +303,7 @@ async function assertBorrowPoolStateChange(interestRateModel, stateBefore, state
         let gap = localAccountBorrows.cmp(stateAfter.borrowPoolState.accountBorrows) > 0 ?
             localAccountBorrows.sub(stateAfter.borrowPoolState.accountBorrows) :
             stateAfter.borrowPoolState.accountBorrows.sub(localAccountBorrows);
-        assert.ok(gap.cmpn(math.expScaleMismatchThreshold) <= 0);
+        assert.ok(gap.abs().cmpn(math.expScaleMismatchThreshold) <= 0);
     } else {
         assert.equal(stateAfter.borrowPoolState.accountBorrows.toString(), '0');
     }

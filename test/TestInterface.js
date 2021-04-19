@@ -174,6 +174,14 @@ contract('Interface test', async (accounts) => {
         assert.equal(usdtBalance.toString(), initUSDTBalance.toString());
         assert.equal(cfscBalance, 0);
         assert.equal(contractUSDTBalance, 0);
+        // test change fee rate, no need to test with exact amount change at here
+        await exchangePool.setFeeRate(web3.utils.toWei('0.0001'));
+        await exchangePool.mintByCFSCAmount(usdt.address, exchangeCFSCAmount);
+        await exchangePool.withdrawFee(accounts[0], web3.utils.toWei('0.1'));
+        // restore test context
+        // transfer CFSC to another accounts
+        await exchangePool.setFeeRate(0);
+        await cfsc.transfer(accounts[9], exchangeCFSCAmount)
     });
     it('dToken interface test', async () => {
         let comptroller = await Comptroller.at(ComptrollerProxy.address);
@@ -374,6 +382,8 @@ contract('Interface test', async (accounts) => {
         let usdt = await USDT.deployed();
         await usdt.transfer(accounts[1], 10000 * (10 ** 6));
         let usdtInitBalance = await usdt.balanceOf(accounts[1]);
+        let exchangePool = await ExchangePool.deployed();
+        let epUSDTBalanceBefore = await usdt.balanceOf(exchangePool.address);
         await usdt.approve(borrowPool.address, repayAmount, {from: accounts[1]});
         await borrowPool.repayBorrowBehalf(usdt.address, accounts[0], repayAmount, {from: accounts[1]});
         accountBorrows = await borrowPool.getBorrows(accounts[0]);
@@ -384,11 +394,10 @@ contract('Interface test', async (accounts) => {
         // because there is one block to accrue interest
         assert.ok(accountBorrows > repayAmount);
         // check exchange pool
-        let exchangePool = await ExchangePool.deployed();
         let epUSDCBalance = await usdc.balanceOf(exchangePool.address);
         let epUSDTBalance = await usdt.balanceOf(exchangePool.address);
-        assert.equal(usdcInitBalance - usdcAfterBalance, epUSDCBalance);
-        assert.equal(usdtInitBalance - usdtAfterBalance, epUSDTBalance);
+        assert.equal((usdcInitBalance - usdcAfterBalance).toString(), epUSDCBalance.toString());
+        assert.equal((usdtInitBalance - usdtAfterBalance).toString(), epUSDTBalance.sub(epUSDTBalanceBefore).toString());
         // we change ether price to decrease account liquidity
         await oracle.setPrice(zeroAddress, web3.utils.toWei('400'));
         // make price change effect

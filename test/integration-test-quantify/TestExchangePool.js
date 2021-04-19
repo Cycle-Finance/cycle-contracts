@@ -1,27 +1,19 @@
-const Comptroller = artifacts.require("Comptroller");
-const Borrows = artifacts.require("Borrows");
-const DERC20 = artifacts.require("DERC20");
-const DEther = artifacts.require("DEther");
-const ComptrollerProxy = artifacts.require("ComptrollerProxy");
-const BorrowsProxy = artifacts.require("BorrowsProxy");
-const dTokenProxy = artifacts.require("DTokenProxy");
-
-const SimpleInterestRateModel = artifacts.require("SimpleInterestRateModel");
 const ExchangePool = artifacts.require("ExchangePool");
 const CycleStableCoin = artifacts.require("CycleStableCoin");
-const CycleGovToken = artifacts.require("CycleToken");
 
 /* test only, will be replaced at maninnet*/
 const TestOracle = artifacts.require("TestOracle");
-const USDC = artifacts.require("TestUSDC");
 const USDT = artifacts.require("TestUSDT");
-const WBTC = artifacts.require("TestWBTC");
-
-const IERC20 = artifacts.require("IERC20");
 
 const ep = require('./method/exchange-pool');
 
+let feeRate = web3.utils.toBN(web3.utils.toWei('0.0001'));
+
 contract('test exchange pool', async (accounts) => {
+    before('set fee rate at here', async () => {
+        let exchangePool = await ExchangePool.deployed();
+        await exchangePool.setFeeRate(feeRate);
+    });
     it('use USDT to test exchange pool', async () => {
         let usdt = await USDT.deployed();
         let cfsc = await CycleStableCoin.deployed();
@@ -41,14 +33,17 @@ contract('test exchange pool', async (accounts) => {
         let cfscBalanceAfter = await cfsc.balanceOf(accounts[0]);
         let exchangePoolBalanceAfter = await usdt.balanceOf(exchangePool.address);
         let cfscTotalSupplyAfter = await cfsc.totalSupply();
+        let exchangePoolCFSCBalance = await cfsc.balanceOf(exchangePool.address);
         let usdtBalanceGap = usdtBalanceBefore.sub(usdtBalanceAfter);
         let cfscBalanceGap = cfscBalanceAfter.sub(cfscBalanceBefore);
         let exchangePoolBalanceGap = exchangePoolBalanceAfter.sub(exchangePoolBalanceBefore);
         let cfscTotalSupplyGap = cfscTotalSupplyAfter.sub(cfscTotalSupplyBefore);
         assert.equal(usdtBalanceGap.toString(), usdtAmount.toString());
-        assert.equal(cfscBalanceGap.toString(), ep.mint(price, usdtAmount).toString());
+        let localMintResult0 = ep.mint(price, usdtAmount, feeRate);
+        assert.equal(cfscBalanceGap.toString(), localMintResult0[0].toString());
         assert.equal(exchangePoolBalanceGap.toString(), usdtAmount.toString());
-        assert.equal(cfscTotalSupplyGap.toString(), ep.mint(price, usdtAmount).toString());
+        assert.equal(cfscTotalSupplyGap.toString(), localMintResult0[0].add(localMintResult0[1]).toString());
+        assert.equal(exchangePoolCFSCBalance.toString(), localMintResult0[1].toString());
         // mint by cfsc amount
         usdtBalanceBefore = usdtBalanceAfter;
         cfscBalanceBefore = cfscBalanceAfter;
@@ -60,14 +55,17 @@ contract('test exchange pool', async (accounts) => {
         cfscBalanceAfter = await cfsc.balanceOf(accounts[0]);
         exchangePoolBalanceAfter = await usdt.balanceOf(exchangePool.address);
         cfscTotalSupplyAfter = await cfsc.totalSupply();
+        exchangePoolCFSCBalance = await cfsc.balanceOf(exchangePool.address);
         usdtBalanceGap = usdtBalanceBefore.sub(usdtBalanceAfter);
         cfscBalanceGap = cfscBalanceAfter.sub(cfscBalanceBefore);
         exchangePoolBalanceGap = exchangePoolBalanceAfter.sub(exchangePoolBalanceBefore);
         cfscTotalSupplyGap = cfscTotalSupplyAfter.sub(cfscTotalSupplyBefore);
-        assert.equal(usdtBalanceGap.toString(), ep.mintByCFSCAmount(price, cfscAmount).toString());
-        assert.equal(cfscBalanceGap.toString(), cfscAmount.toString());
-        assert.equal(exchangePoolBalanceGap.toString(), ep.mintByCFSCAmount(price, cfscAmount).toString());
+        let localMintResult1 = ep.mintByCFSCAmount(price, cfscAmount, feeRate);
+        assert.equal(usdtBalanceGap.toString(), localMintResult1[0].toString());
+        assert.equal(cfscBalanceGap.toString(), cfscAmount.sub(localMintResult1[1]).toString());
+        assert.equal(exchangePoolBalanceGap.toString(), localMintResult1[0].toString());
         assert.equal(cfscTotalSupplyGap.toString(), cfscAmount.toString());
+        assert.equal(exchangePoolCFSCBalance.toString(), localMintResult0[1].add(localMintResult1[1]).toString());
         // burn
         await cfsc.approve(exchangePool.address, cfscAmount.muln(10));
         usdtBalanceBefore = usdtBalanceAfter;
@@ -79,31 +77,47 @@ contract('test exchange pool', async (accounts) => {
         cfscBalanceAfter = await cfsc.balanceOf(accounts[0]);
         exchangePoolBalanceAfter = await usdt.balanceOf(exchangePool.address);
         cfscTotalSupplyAfter = await cfsc.totalSupply();
+        exchangePoolCFSCBalance = await cfsc.balanceOf(exchangePool.address);
         usdtBalanceGap = usdtBalanceAfter.sub(usdtBalanceBefore);
         cfscBalanceGap = cfscBalanceBefore.sub(cfscBalanceAfter);
         exchangePoolBalanceGap = exchangePoolBalanceBefore.sub(exchangePoolBalanceAfter);
         cfscTotalSupplyGap = cfscTotalSupplyBefore.sub(cfscTotalSupplyAfter);
+        let localBurnResult0 = ep.burn(price, usdtAmount, feeRate);
         assert.equal(usdtBalanceGap.toString(), usdtAmount.toString());
-        assert.equal(cfscBalanceGap.toString(), ep.burn(price, usdtAmount).toString());
+        assert.equal(cfscBalanceGap.toString(), localBurnResult0[0].add(localBurnResult0[1]).toString());
         assert.equal(exchangePoolBalanceGap.toString(), usdtAmount.toString());
-        assert.equal(cfscTotalSupplyGap.toString(), ep.burn(price, usdtAmount).toString());
+        assert.equal(cfscTotalSupplyGap.toString(), localBurnResult0[0].toString());
+        assert.equal(exchangePoolCFSCBalance.toString(), localMintResult0[1].add(localMintResult1[1])
+            .add(localBurnResult0[1]).toString());
         // burn by cfsc amount
         usdtBalanceBefore = usdtBalanceAfter;
         cfscBalanceBefore = cfscBalanceAfter;
         exchangePoolBalanceBefore = exchangePoolBalanceAfter;
         cfscTotalSupplyBefore = cfscTotalSupplyAfter;
+        cfscAmount = await cfsc.balanceOf(accounts[0]);
         await exchangePool.burnByCFSCAmount(usdt.address, cfscAmount);
         usdtBalanceAfter = await usdt.balanceOf(accounts[0]);
         cfscBalanceAfter = await cfsc.balanceOf(accounts[0]);
         exchangePoolBalanceAfter = await usdt.balanceOf(exchangePool.address);
         cfscTotalSupplyAfter = await cfsc.totalSupply();
+        exchangePoolCFSCBalance = await cfsc.balanceOf(exchangePool.address);
         usdtBalanceGap = usdtBalanceAfter.sub(usdtBalanceBefore);
         cfscBalanceGap = cfscBalanceBefore.sub(cfscBalanceAfter);
         exchangePoolBalanceGap = exchangePoolBalanceBefore.sub(exchangePoolBalanceAfter);
         cfscTotalSupplyGap = cfscTotalSupplyBefore.sub(cfscTotalSupplyAfter);
-        assert.equal(usdtBalanceGap.toString(), ep.burnByCFSCAmount(price, cfscAmount).toString());
+        let localBurnResult1 = ep.burnByCFSCAmount(price, cfscAmount, feeRate);
+        assert.equal(usdtBalanceGap.toString(), localBurnResult1[0].toString());
         assert.equal(cfscBalanceGap.toString(), cfscAmount.toString());
-        assert.equal(exchangePoolBalanceGap.toString(), ep.burnByCFSCAmount(price, cfscAmount).toString());
-        assert.equal(cfscTotalSupplyGap.toString(), cfscAmount.toString());
+        assert.equal(exchangePoolBalanceGap.toString(), localBurnResult1[0].toString());
+        assert.equal(cfscTotalSupplyGap.toString(), cfscAmount.sub(localBurnResult1[1]).toString());
+        assert.equal(exchangePoolCFSCBalance.toString(), localMintResult0[1].add(localMintResult1[1])
+            .add(localBurnResult0[1]).add(localBurnResult1[1]).toString());
+        cfscBalanceBefore = cfscBalanceAfter;
+        await exchangePool.withdrawFee(accounts[0], exchangePoolCFSCBalance);
+        cfscBalanceAfter = await cfsc.balanceOf(accounts[0]);
+        cfscBalanceGap = cfscBalanceAfter.sub(cfscBalanceBefore);
+        assert.equal(cfscBalanceGap.toString(), exchangePoolCFSCBalance.toString());
+        exchangePoolCFSCBalance = await cfsc.balanceOf(exchangePool.address);
+        assert.equal(exchangePoolCFSCBalance.toString(), '0');
     });
 });

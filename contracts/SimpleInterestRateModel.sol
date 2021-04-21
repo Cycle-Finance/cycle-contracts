@@ -53,7 +53,7 @@ contract SimpleInterestRateModel is InterestRateModel, ExponentialNoError, Ownab
         if (borrowsValueMantissa == 0) {
             return 0;
         }
-        require(borrowsValueMantissa <= depositValueMantissa, "UR exceed 1");
+//        require(borrowsValueMantissa <= depositValueMantissa, "UR exceed 1");
         Exp memory deposit = Exp(depositValueMantissa);
         Exp memory borrows = Exp(borrowsValueMantissa);
         return div_(borrows, deposit).mantissa;

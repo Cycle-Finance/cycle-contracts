@@ -67,12 +67,15 @@ contract('test dToken', async (accounts) => {
         let contractUserValue1 = await dWBTC.userDepositValue(accounts[1]);
         assert.equal(contractUserValue0.toString(), contractUserValue1.toString());
         // transfer
-        await dWBTC.transfer(accounts[1], amount);
+        let tx = await dWBTC.transfer(accounts[1], amount);
+        console.log('dToken transfer: %s', tx.receipt.gasUsed);
         contractBalanceOf1 = await dWBTC.balanceOf(accounts[1]);
         assert.equal(contractBalanceOf1.toString(), contractTotalSupply.toString());
         // approve and transferFrom
-        await dWBTC.approve(accounts[0], amount, {from: accounts[1]});
-        await dWBTC.transferFrom(accounts[1], accounts[0], amount);
+        tx = await dWBTC.approve(accounts[0], amount, {from: accounts[1]});
+        console.log('dToken approve: %s', tx.receipt.gasUsed);
+        tx = await dWBTC.transferFrom(accounts[1], accounts[0], amount);
+        console.log('dToken transferFrom: %s', tx.receipt.gasUsed);
         contractBalanceOf0 = await dWBTC.balanceOf(accounts[0]);
         contractBalanceOf1 = await dWBTC.balanceOf(accounts[1]);
         assert.equal(contractBalanceOf0.toString(), contractBalanceOf1.toString());

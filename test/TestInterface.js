@@ -40,10 +40,6 @@ contract('Interface test', async (accounts) => {
         // check comptroller state
         let currentRefreshedBlock = await comptroller.refreshedBlock();
         assert.ok(currentRefreshedBlock > initRefreshedBlock);
-        // check log
-        // console.log(refreshMarketTxReceipt);
-        // truffle has some problem that refreshMarketTxReceipt couldn't decode raw logs
-        // assert.equal(refreshMarketTxReceipt.logs.length, 1);
     });
     it('comptroller update some config', async () => {
         let comptroller = await Comptroller.at(ComptrollerProxy.address);

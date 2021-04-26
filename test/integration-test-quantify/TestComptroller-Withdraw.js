@@ -108,7 +108,8 @@ contract('test comptroller with withdraw', async (accounts) => {
     it('accounts[0] withdraw same value got different CFGT distribution', async () => {
         let stateBefore = await context.getState(ctx, ctx.dEther, accounts[0]);
         let withdrawAmount = web3.utils.toBN(web3.utils.toWei('1'));
-        await ctx.dEther.redeem(withdrawAmount);
+        let tx = await ctx.dEther.redeem(withdrawAmount);
+        console.log('dEther redeem: %s', tx.receipt.gasUsed);
         let stateAfter = await context.getState(ctx, ctx.dEther, accounts[0]);
         utils.assertStateChange(stateBefore, stateAfter, utils.KIND_SUPPLIER, web3.utils.toBN(0), param);
         // record CFGT distribution
@@ -124,7 +125,8 @@ contract('test comptroller with withdraw', async (accounts) => {
         // because supplySpeed is constant
         let weight1 = math.div_(stateBefore.dToken.userDepositValue, stateBefore.comp.totalDeposit);
         stateBefore = stateAfter;
-        await ctx.dEther.redeem(withdrawAmount);
+        tx = await ctx.dEther.redeem(withdrawAmount);
+        console.log('dEther redeem: %s', tx.receipt.gasUsed);
         stateAfter = await context.getState(ctx, ctx.dEther, accounts[0]);
         utils.assertStateChange(stateBefore, stateAfter, utils.KIND_SUPPLIER, web3.utils.toBN(0), param);
         // record CFGT distribution
@@ -140,5 +142,7 @@ contract('test comptroller with withdraw', async (accounts) => {
         assert.ok(math.mulScalarAndTruncate(weight1, singleDelta2)
             .sub(math.mulScalarAndTruncate(weight2, singleDelta1)).abs()
             .cmpn(math.expScaleMismatchThreshold) <= 0);
+        tx = await ctx.dWBTC.redeem(10 * (10 ** 8));
+        console.log('dERC20 redeem: %s', tx.receipt.gasUsed);
     });
 });

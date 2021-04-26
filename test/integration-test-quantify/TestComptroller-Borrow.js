@@ -116,7 +116,8 @@ contract('test comptroller with borrow', async (accounts) => {
     it('no borrow distribution when accounts[0] first borrow', async () => {
         let stateBefore = await context.getState(ctx, ctx.dEther, accounts[0]);
         let borrowAmount = web3.utils.toBN(web3.utils.toWei('67700'));
-        await ctx.borrowPool.borrow(borrowAmount);
+        let tx = await ctx.borrowPool.borrow(borrowAmount);
+        console.log('borrow: %s', tx.receipt.gasUsed);
         let stateAfter = await context.getState(ctx, ctx.dEther, accounts[0]);
         utils.assertStateChange(stateBefore, stateAfter, utils.KIND_BORROWER, borrowAmount, param);
         assert.equal(stateAfter.cfgtBalance.sub(stateBefore.cfgtBalance).toString(), 0);
@@ -140,7 +141,8 @@ contract('test comptroller with borrow', async (accounts) => {
         let localBorrowRate = localInterestRateModel.borrowRatePerBlock(stateBefore.comp.totalDeposit,
             stateBefore.bp.totalBorrows, param.baseRatePerYear, param.multiplierPerYear);
         assert.equal(contractBorrowRate.toString(), localBorrowRate.toString());
-        await ctx.borrowPool.borrow(borrowAmount, {from: accounts[1]});
+        let tx = await ctx.borrowPool.borrow(borrowAmount, {from: accounts[1]});
+        console.log('borrow: %s', tx.receipt.gasUsed);
         let stateAfter = await context.getState(ctx, ctx.dEther, accounts[1]);
         utils.assertStateChange(stateBefore, stateAfter, utils.KIND_BORROWER, borrowAmount, param);
         assert.equal(stateAfter.cfgtBalance.sub(stateBefore.cfgtBalance).toString(), 0);
@@ -148,11 +150,13 @@ contract('test comptroller with borrow', async (accounts) => {
     });
     it('accounts borrow same value should get same profit', async () => {
         // clear state
-        await ctx.comptroller.claimAllProfit([accounts[0], accounts[1]]);
+        let tx = await ctx.comptroller.claimAllProfit([accounts[0], accounts[1]]);
+        console.log('comptroller claimAllProfit(2): %s', tx.receipt.gasUsed);
 
         let stateBefore0 = await context.getState(ctx, ctx.dEther, accounts[0]);
         let stateBefore1 = await context.getState(ctx, ctx.dEther, accounts[1]);
-        await ctx.comptroller.claimBorrowerCFGT([accounts[0], accounts[1]]);
+        tx = await ctx.comptroller.claimBorrowerCFGT([accounts[0], accounts[1]]);
+        console.log('comptroller claimBorrowerCFGT(2): %s', tx.receipt.gasUsed);
         let stateAfter0 = await context.getState(ctx, ctx.dEther, accounts[0]);
         let stateAfter1 = await context.getState(ctx, ctx.dEther, accounts[1]);
         utils.assertStateChange(stateBefore0, stateAfter0, utils.KIND_BORROWER, web3.utils.toBN(0), param);
@@ -165,7 +169,8 @@ contract('test comptroller with borrow', async (accounts) => {
         let repayAmount = web3.utils.toBN(web3.utils.toWei('700'));
         let repayAmountParam = repayAmount.mul(web3.utils.toBN(-1));
         await ctx.CFSC.approve(ctx.borrowPool.address, maxUint256);
-        await ctx.borrowPool.repayBorrow(ctx.CFSC.address, repayAmount);
+        let tx = await ctx.borrowPool.repayBorrow(ctx.CFSC.address, repayAmount);
+        console.log('repayBorrow by CFSC: %s', tx.receipt.gasUsed);
         let stateAfter = await context.getState(ctx, ctx.dEther, accounts[0]);
         utils.assertStateChange(stateBefore, stateAfter, utils.KIND_BORROWER, repayAmountParam, param);
         // record CFGT distribution
@@ -176,7 +181,8 @@ contract('test comptroller with borrow', async (accounts) => {
         // because borrowSpeed is constant
         let weight1 = math.div_(stateBefore.bp.accountBorrows, stateBefore.bp.totalBorrows);
         stateBefore = stateAfter;
-        await ctx.borrowPool.repayBorrow(ctx.CFSC.address, repayAmount);
+        tx = await ctx.borrowPool.repayBorrow(ctx.CFSC.address, repayAmount);
+        console.log('repayBorrow by CFSC: %s', tx.receipt.gasUsed);
         stateAfter = await context.getState(ctx, ctx.dEther, accounts[0]);
         utils.assertStateChange(stateBefore, stateAfter, utils.KIND_BORROWER, repayAmountParam, param);
         // record CFGT distribution
@@ -198,7 +204,8 @@ contract('test comptroller with borrow', async (accounts) => {
         let btcCurrentPrice = await ctx.oracle.getPrice(ctx.WBTC.address);
         // we repay accounts[1] borrow so that accounts[1] has enough liquidity
         await ctx.USDC.approve(ctx.borrowPool.address, maxUint256, {from: accounts[1]});
-        await ctx.borrowPool.repayBorrow(ctx.USDC.address, maxUint256, {from: accounts[1]});
+        let tx = await ctx.borrowPool.repayBorrow(ctx.USDC.address, maxUint256, {from: accounts[1]});
+        console.log('repayBorrow by USDC: %s', tx.receipt.gasUsed);
         // prepare some CFSC
         await ctx.USDC.approve(ctx.exchangePool.address, maxUint256, {from: accounts[1]});
         await ctx.exchangePool.mintByCFSCAmount(ctx.USDC.address, web3.utils.toWei('40000'), {from: accounts[1]});
@@ -209,7 +216,8 @@ contract('test comptroller with borrow', async (accounts) => {
         await ctx.dUSDT.redeem(10000 * (10 ** 6), {from: accounts[1]});
 
         // clear state
-        await ctx.comptroller.claimAllProfit([accounts[0], accounts[1]]);
+        tx = await ctx.comptroller.claimAllProfit([accounts[0], accounts[1]]);
+        console.log('comptroller claimAllProfit(2): %s', tx.receipt.gasUsed);
 
         let stateBefore0 = await context.getState(ctx, ctx.dWBTC, accounts[0]);
         let stateBefore1 = await context.getState(ctx, ctx.dWBTC, accounts[1]);
@@ -221,8 +229,9 @@ contract('test comptroller with borrow', async (accounts) => {
         // liquidate
         let liquidateAmount = web3.utils.toBN(web3.utils.toWei('100'));
         await ctx.CFSC.approve(ctx.borrowPool.address, maxUint256, {from: accounts[1]});
-        await ctx.borrowPool.liquidateBorrow(ctx.CFSC.address, ctx.dWBTC.address, accounts[0], liquidateAmount,
+        tx = await ctx.borrowPool.liquidateBorrow(ctx.CFSC.address, ctx.dWBTC.address, accounts[0], liquidateAmount,
             {from: accounts[1]});
+        console.log('liquidateBorrow by CFSC at dWBTC: %s', tx.receipt.gasUsed);
         let stateAfter0 = await context.getState(ctx, ctx.dWBTC, accounts[0]);
         let stateAfter1 = await context.getState(ctx, ctx.dWBTC, accounts[1]);
         /* check liquidity */
@@ -254,8 +263,9 @@ contract('test comptroller with borrow', async (accounts) => {
 
         // liquidate
         let liquidateAmount = web3.utils.toBN(web3.utils.toWei('100'));
-        await ctx.borrowPool.liquidateBorrow(ctx.CFSC.address, ctx.dEther.address, accounts[0], liquidateAmount,
+        let tx = await ctx.borrowPool.liquidateBorrow(ctx.CFSC.address, ctx.dEther.address, accounts[0], liquidateAmount,
             {from: accounts[1]});
+        console.log('liquidateBorrow by CFSC at dEther: %s', tx.receipt.gasUsed);
         let stateAfter0 = await context.getState(ctx, ctx.dEther, accounts[0]);
         let stateAfter1 = await context.getState(ctx, ctx.dEther, accounts[1]);
         /* check liquidity */
@@ -370,7 +380,8 @@ contract('test comptroller with borrow', async (accounts) => {
         await ctx.borrowPool.repayBorrow(ctx.CFSC.address, accountBorrows0.divn(2));
 
         accountBorrows0 = await ctx.borrowPool.getBorrows(accounts[0]);
-        await ctx.borrowPool.borrow(accountBorrows0, {from: publicBorrower});
+        let tx = await ctx.borrowPool.borrow(accountBorrows0, {from: publicBorrower});
+        console.log('public borrow: %s', tx.receipt.gasUsed);
 
         // clear state
         await ctx.comptroller.claimAllProfit([accounts[0], publicBorrower]);
@@ -419,8 +430,9 @@ contract('test comptroller with borrow', async (accounts) => {
         let stateBefore = await context.getState(ctx, ctx.dEther, accounts[0]);
         // ensure accounts[0] could got interest
         assert.ok(stateBefore.bp.accountBorrows.cmpn(0) > 0);
-        await ctx.comptroller.claimInterest([ctx.dEther.address, ctx.dWBTC.address, ctx.dUSDC.address,
+        let tx = await ctx.comptroller.claimInterest([ctx.dEther.address, ctx.dWBTC.address, ctx.dUSDC.address,
             ctx.dUSDT.address], [accounts[0]]);
+        console.log('comptroller claim interest(4, 1): %s', tx.receipt.gasUsed);
         let stateAfter = await context.getState(ctx, ctx.dEther, accounts[0]);
         // utils.assertStateChange(stateBefore0, stateAfter0, utils.KIND_SUPPLIER, web3.utils.toBN(0), param);
         let cfgtDelta = stateAfter.cfgtBalance.sub(stateBefore.cfgtBalance);
@@ -435,8 +447,10 @@ contract('test comptroller with borrow', async (accounts) => {
         // repay whole borrows
         await ctx.CFSC.approve(ctx.borrowPool.address, maxUint256);
         await ctx.borrowPool.repayBorrow(ctx.CFSC.address, maxUint256);
-        await ctx.borrowPool.repayBorrowBehalf(ctx.CFSC.address, accounts[1], maxUint256);
-        await ctx.borrowPool.repayBorrowBehalf(ctx.CFSC.address, accounts[2], maxUint256); // public borrower
+        let tx = await ctx.borrowPool.repayBorrowBehalf(ctx.CFSC.address, accounts[1], maxUint256);
+        console.log('repayBorrowBehalf by CFSC: %s', tx.receipt.gasUsed);
+        tx = await ctx.borrowPool.repayBorrowBehalf(ctx.CFSC.address, accounts[2], maxUint256); // public borrower
+        console.log('repayBorrowBehalf by CFSC: %s', tx.receipt.gasUsed);
         // clear state
         await ctx.comptroller.claimAllProfit([accounts[0], accounts[1], accounts[2]]);
 

@@ -6,7 +6,6 @@ const ComptrollerProxy = artifacts.require("ComptrollerProxy");
 const BorrowsProxy = artifacts.require("BorrowsProxy");
 const dTokenProxy = artifacts.require("DTokenProxy");
 
-const SimpleInterestRateModel = artifacts.require("SimpleInterestRateModel");
 const ExchangePool = artifacts.require("ExchangePool");
 const CycleStableCoin = artifacts.require("CycleStableCoin");
 const CycleGovToken = artifacts.require("CycleToken");
@@ -83,7 +82,8 @@ contract('test comptroller with deposit', async (accounts) => {
     it('accounts[0] deposit 1 ETH', async () => {
         let stateBefore = await context.getState(ctx, ctx.dEther, accounts[0]);
         let depositAmount = web3.utils.toBN(web3.utils.toWei('1'));
-        await ctx.dEther.mint(depositAmount, {value: depositAmount});
+        let tx = await ctx.dEther.mint(depositAmount, {value: depositAmount});
+        console.log('dEther mint: %s', tx.receipt.gasUsed);
         let stateAfter = await context.getState(ctx, ctx.dEther, accounts[0]);
         utils.assertStateChange(stateBefore, stateAfter, utils.KIND_SUPPLIER, web3.utils.toBN(0), param);
         // check total deposit
@@ -93,7 +93,8 @@ contract('test comptroller with deposit', async (accounts) => {
     it('accounts[0] deposit 1 ETH again', async () => {
         let stateBefore = await context.getState(ctx, ctx.dEther, accounts[0]);
         let depositAmount = web3.utils.toBN(web3.utils.toWei('1'));
-        await ctx.dEther.mint(depositAmount, {value: depositAmount});
+        let tx = await ctx.dEther.mint(depositAmount, {value: depositAmount});
+        console.log('dEther mint: %s', tx.receipt.gasUsed);
         let stateAfter = await context.getState(ctx, ctx.dEther, accounts[0]);
         utils.assertStateChange(stateBefore, stateAfter, utils.KIND_SUPPLIER, web3.utils.toBN(0), param);
         // check some specific value
@@ -107,7 +108,8 @@ contract('test comptroller with deposit', async (accounts) => {
         let stateAccount0 = await context.getState(ctx, ctx.dEther, accounts[0]);
         let stateAccount1 = await context.getState(ctx, ctx.dEther, accounts[1]);
         let depositAmount = web3.utils.toBN(web3.utils.toWei('2'));
-        await ctx.dEther.mint(depositAmount, {value: depositAmount, from: accounts[1]});
+        let tx = await ctx.dEther.mint(depositAmount, {value: depositAmount, from: accounts[1]});
+        console.log('dEther mint: %s', tx.receipt.gasUsed);
         let stateAfter1 = await context.getState(ctx, ctx.dEther, accounts[1]);
         utils.assertStateChange(stateAccount1, stateAfter1, utils.KIND_SUPPLIER, web3.utils.toBN(0), param);
         // check total deposit
@@ -132,7 +134,8 @@ contract('test comptroller with deposit', async (accounts) => {
         let stateBefore = await context.getState(ctx, ctx.dWBTC, accounts[0]);
         let depositAmount = web3.utils.toBN(10 ** 8);
         await ctx.WBTC.approve(ctx.dWBTC.address, depositAmount);
-        await ctx.dWBTC.mint(depositAmount);
+        let tx = await ctx.dWBTC.mint(depositAmount);
+        console.log('dERC20 mint: %s', tx.receipt.gasUsed);
         let stateAfter = await context.getState(ctx, ctx.dWBTC, accounts[0]);
         utils.assertStateChange(stateBefore, stateAfter, utils.KIND_SUPPLIER, web3.utils.toBN(0), param);
         // check total deposit
@@ -143,7 +146,8 @@ contract('test comptroller with deposit', async (accounts) => {
         let stateBefore = await context.getState(ctx, ctx.dUSDC, accounts[0]);
         let depositAmount = web3.utils.toBN(10 ** 8);
         await ctx.USDC.approve(ctx.dUSDC.address, depositAmount);
-        await ctx.dUSDC.mint(depositAmount);
+        let tx = await ctx.dUSDC.mint(depositAmount);
+        console.log('dERC20 mint: %s', tx.receipt.gasUsed);
         let stateAfter = await context.getState(ctx, ctx.dUSDC, accounts[0]);
         utils.assertStateChange(stateBefore, stateAfter, utils.KIND_SUPPLIER, web3.utils.toBN(0), param);
         // check total deposit
@@ -154,7 +158,8 @@ contract('test comptroller with deposit', async (accounts) => {
         let stateBefore = await context.getState(ctx, ctx.dUSDT, accounts[0]);
         let depositAmount = web3.utils.toBN(10 ** 8);
         await ctx.USDT.approve(ctx.dUSDT.address, depositAmount);
-        await ctx.dUSDT.mint(depositAmount);
+        let tx = await ctx.dUSDT.mint(depositAmount);
+        console.log('dERC20 mint: %s', tx.receipt.gasUsed);
         let stateAfter = await context.getState(ctx, ctx.dUSDT, accounts[0]);
         utils.assertStateChange(stateBefore, stateAfter, utils.KIND_SUPPLIER, web3.utils.toBN(0), param);
         // check total deposit
@@ -163,10 +168,12 @@ contract('test comptroller with deposit', async (accounts) => {
     });
     it('accounts[0] profit at different deposit value should be different', async () => {
         // clear state
-        await ctx.comptroller.claimAllProfit([accounts[0]]);
+        let tx = await ctx.comptroller.claimAllProfit([accounts[0]]);
+        console.log('comptroller claimAllProfit(1): %s', tx.receipt.gasUsed);
 
         let ethStateBefore = await context.getState(ctx, ctx.dEther, accounts[0]);
-        await ctx.comptroller.claimSupplierCFGT([ctx.dEther.address], [accounts[0]]);
+        tx = await ctx.comptroller.claimSupplierCFGT([ctx.dEther.address], [accounts[0]]);
+        console.log('comptroller claimSupplierCFGT(1, 1): %s', tx.receipt.gasUsed);
         let ethStateAfter = await context.getState(ctx, ctx.dEther, accounts[0]);
         utils.assertStateChange(ethStateBefore, ethStateAfter, utils.KIND_SUPPLIER, web3.utils.toBN(0), param);
 
@@ -246,7 +253,8 @@ contract('test comptroller with deposit', async (accounts) => {
         let stateBefore = await context.getState(ctx, ctx.dWBTC, accounts[1]);
         let depositAmount = web3.utils.toBN(10 ** 8);
         await ctx.WBTC.approve(ctx.dWBTC.address, depositAmount, {from: accounts[1]});
-        await ctx.dWBTC.mint(depositAmount, {from: accounts[1]});
+        let tx = await ctx.dWBTC.mint(depositAmount, {from: accounts[1]});
+        console.log('dERC20 mint: %s', tx.receipt.gasUsed);
         let stateAfter = await context.getState(ctx, ctx.dWBTC, accounts[1]);
         utils.assertStateChange(stateBefore, stateAfter, utils.KIND_SUPPLIER, web3.utils.toBN(0), param);
         // check total deposit
@@ -257,7 +265,8 @@ contract('test comptroller with deposit', async (accounts) => {
         let stateBefore = await context.getState(ctx, ctx.dUSDC, accounts[1]);
         let depositAmount = web3.utils.toBN(10 ** 8);
         await ctx.USDC.approve(ctx.dUSDC.address, depositAmount, {from: accounts[1]});
-        await ctx.dUSDC.mint(depositAmount, {from: accounts[1]});
+        let tx = await ctx.dUSDC.mint(depositAmount, {from: accounts[1]});
+        console.log('dERC20 mint: %s', tx.receipt.gasUsed);
         let stateAfter = await context.getState(ctx, ctx.dUSDC, accounts[1]);
         utils.assertStateChange(stateBefore, stateAfter, utils.KIND_SUPPLIER, web3.utils.toBN(0), param);
         // check total deposit
@@ -268,7 +277,8 @@ contract('test comptroller with deposit', async (accounts) => {
         let stateBefore = await context.getState(ctx, ctx.dUSDT, accounts[1]);
         let depositAmount = web3.utils.toBN(10 ** 8);
         await ctx.USDT.approve(ctx.dUSDT.address, depositAmount, {from: accounts[1]});
-        await ctx.dUSDT.mint(depositAmount, {from: accounts[1]});
+        let tx = await ctx.dUSDT.mint(depositAmount, {from: accounts[1]});
+        console.log('dERC20 mint: %s', tx.receipt.gasUsed);
         let stateAfter = await context.getState(ctx, ctx.dUSDT, accounts[1]);
         utils.assertStateChange(stateBefore, stateAfter, utils.KIND_SUPPLIER, web3.utils.toBN(0), param);
         // check total deposit
@@ -276,7 +286,8 @@ contract('test comptroller with deposit', async (accounts) => {
         assert.equal(totalDeposit.toString(), stateAfter.comp.totalDeposit.toString());
     });
     it('profit at same deposit value of account should be same', async () => {
-        await ctx.comptroller.claimAllProfit([accounts[0], accounts[1]]);
+        let tx = await ctx.comptroller.claimAllProfit([accounts[0], accounts[1]]);
+        console.log('comptroller claimAllProfit(2): %s', tx.receipt.gasUsed);
 
         let cfgtBalance0Before = await ctx.CFGT.balanceOf(accounts[0]);
         let cfgtBalance1Before = await ctx.CFGT.balanceOf(accounts[1]);
@@ -318,10 +329,12 @@ contract('test comptroller with deposit', async (accounts) => {
             derc20.address, emptyData);
         let dUSDTNew = await DERC20.at(dUSDTProxyNew.address);
         await dUSDTNew.initialize(ctx.oracle.address, ctx.comptroller.address);
-        await ctx.comptroller.registerMarket(dUSDTNew.address, web3.utils.toWei('0.75'));
+        let tx = await ctx.comptroller.registerMarket(dUSDTNew.address, web3.utils.toWei('0.75'));
+        console.log('comptroller registerMarket(4): %s', tx.receipt.gasUsed);
         let depositAmount = web3.utils.toBN(10 ** 8);
         await ctx.USDT.approve(dUSDTNew.address, depositAmount);
-        await dUSDTNew.mint(depositAmount);
+        tx = await dUSDTNew.mint(depositAmount);
+        console.log('dERC20 mint: %s', tx.receipt.gasUsed);
         await ctx.comptroller.claimAllProfit([accounts[0]]);
 
         let usdtNewStateBefore = await context.getState(ctx, dUSDTNew, accounts[0]);
@@ -329,7 +342,8 @@ contract('test comptroller with deposit', async (accounts) => {
         let usdtNewStateAfter = await context.getState(ctx, dUSDTNew, accounts[0]);
         utils.assertStateChange(usdtNewStateBefore, usdtNewStateAfter, utils.KIND_SUPPLIER, web3.utils.toBN(0), param);
 
-        await ctx.comptroller.claimAllProfit([accounts[0]]);
+        tx = await ctx.comptroller.claimAllProfit([accounts[0]]);
+        console.log('comptroller claimAllProfit(1): %s', tx.receipt.gasUsed);
         let usdtStateBefore = await context.getState(ctx, ctx.dUSDT, accounts[0]);
         await ctx.comptroller.claimSupplierCFGT([ctx.dUSDT.address], [accounts[0]]);
         let usdtStateAfter = await context.getState(ctx, ctx.dUSDT, accounts[0]);

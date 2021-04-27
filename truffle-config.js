@@ -76,20 +76,18 @@ module.exports = {
             skipDryRun: true     // Skip dry run before migrations? (default: false for public nets )
         },
         testnet: {
-            provider: () => new HDWalletProvider(mnemonic, `https://data-seed-prebsc-1-s1.binance.org:8545/`),
+            provider: () => new HDWalletProvider(mnemonic, `https://data-seed-prebsc-1-s3.binance.org:8545/`),
             network_id: 97,
-            // confirmations: 1,
+            confirmations: 1,
             timeoutBlocks: 200,
-            networkCheckTimeout: 1000000000,
-            gasPrice: 10000000000,  // 10 gwei (in wei)
-            skipDryRun: true
+            skipDryRun: true,
+            gasPrice: 10000000000  // 10 gwei (in wei)
         },
         bsc: {
             provider: () => new HDWalletProvider(mnemonic, `https://bsc-dataseed1.binance.org`),
             network_id: 56,
-            // confirmations: 1,
+            confirmations: 1,
             timeoutBlocks: 200,
-            networkCheckTimeout: 1000000000,
             gasPrice: 5000000000,  // 5 gwei (in wei)
             skipDryRun: true
         },

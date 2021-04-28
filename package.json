@@ -1,7 +1,7 @@
 {
-  "name": "bdb-contracts",
+  "name": "cycle-contracts",
   "version": "0.0.1",
-  "description": "blockchain development bank implemention of solidity",
+  "description": "cycle finance implementation of solidity version",
   "main": "truffle-config.js",
   "directories": {
     "test": "test"
@@ -17,12 +17,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ccbankpro/bdb-contracts.git"
+    "url": "git+https://github.com/Cycle-Finance/cycle-contracts.git"
   },
-  "author": "Blockchain Development Bank",
+  "author": "cycle decentralized autonomous foundation",
   "license": "LGPL-3.0-or-later",
   "bugs": {
-    "url": "https://github.com/ccbankpro/bdb-contracts/issues"
+    "url": "https://github.com/Cycle-Finance/cycle-contracts/issues"
   },
-  "homepage": "https://github.com/ccbankpro/bdb-contracts#readme"
+  "homepage": "https://cycle-daf.com"
 }

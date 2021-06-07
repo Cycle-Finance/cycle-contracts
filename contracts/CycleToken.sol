@@ -5,6 +5,8 @@ pragma abicoder v2;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+// TODO: adjust to fair lunch
+
 contract CycleToken is ERC20, Ownable {
 
     uint constant private factor = 10 ** 18;

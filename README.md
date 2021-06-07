@@ -6,6 +6,7 @@ solidity implementation of cycle finance protocol
 
 - clear code
 - optimize gas consumed
+- use SafeERC20 library of openzepplin
 
 ## Gas Used
 
